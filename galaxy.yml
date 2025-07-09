@@ -1,0 +1,31 @@
+---
+namespace: eliminyro
+name: docker
+version: 1.0.0
+description: Ansible collection for Docker management roles and playbooks.
+readme: README.md
+authors:
+  - Pavel Eliminyro <public@eliminyro.me>
+license:
+  - GPL-3.0-or-later
+repository: https://github.com/eliminyro/eliminyro.docker
+issues: https://github.com/eliminyro/eliminyro.docker/issues
+tags:
+  - docker
+  - container
+  - ansible
+dependencies: {}
+build_ignore:
+  - ".git"
+  - ".github"
+  - ".gitignore"
+  - ".ansible-lint"
+  - ".yamllint"
+  - ".ansible"
+  - ".vscode"
+  - "molecule"
+  - "tests"
+  - "files"
+  - "*.pyc"
+  - "__pycache__"
+  - ".DS_Store"

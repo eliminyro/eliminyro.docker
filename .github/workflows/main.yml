@@ -1,0 +1,99 @@
+---
+name: Molecule CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, closed]
+  push:
+    branches: [master]
+
+jobs:
+  lint:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.pull_request.merged == true ||
+      contains(fromJSON('["opened", "synchronize"]'), github.event.action)
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/eliminyro/ansible-tests:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ansible_collections/eliminyro/docker
+      - name: Run ansible-lint tests
+        run: ansible-lint -c .ansible-lint .
+        working-directory: ansible_collections/eliminyro/docker
+      - name: Run yamllint tests
+        run: yamllint -c .yamllint .
+        working-directory: ansible_collections/eliminyro/docker
+
+  sanity:
+    needs: lint
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/eliminyro/ansible-tests:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ansible_collections/eliminyro/docker
+      - name: Run sanity tests
+        run: ansible-test sanity --docker -v
+        working-directory: ansible_collections/eliminyro/docker
+
+  molecule-setup:
+    runs-on: ubuntu-24.04
+    needs: sanity
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install molecule[docker] molecule-plugins[docker] testinfra pytest
+          pip install ansible-core>=2.12 docker requests cryptography
+
+      - name: Run Molecule tests for setup role
+        run: |
+          molecule test -s setup
+        env:
+          PY_COLORS: 1
+          ANSIBLE_FORCE_COLOR: 1
+
+  molecule-deploy:
+    needs: sanity
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/eliminyro/molecule:latest
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
+      options: --privileged
+      volumes:
+        - /tmp/collection:/__w/eliminyro.adguard/eliminyro.adguard/ansible_collections/eliminyro/adguard
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: ansible_collections/eliminyro/adguard
+      - name: Run molecule tests
+        run: molecule test
+        working-directory: ansible_collections/eliminyro/adguard
+        env:
+          PY_COLORS: '1'
+          ANSIBLE_FORCE_COLOR: '1'
+          MOLECULE_DOCKER_NETWORK: ${{ job.container.network }}
