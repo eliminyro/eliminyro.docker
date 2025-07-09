@@ -1,4 +1,4 @@
-# Ansible Role: docker_deploy
+# Ansible Role: deploy
 
 This Ansible role automates the deployment of Docker containers, including
 dependencies, configuration files and directory creation. It is designed for

@@ -1,5 +1,5 @@
 ---
-- name: "{{ playbook_app }} | Create all the necessary directories"
+- name: "{{ playbook_app }} | Create all the necessary directories and files"
   ansible.builtin.include_tasks:
     file: "vols2dirs.yml"
   vars:
