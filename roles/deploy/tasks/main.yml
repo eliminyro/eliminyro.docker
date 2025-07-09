@@ -1,5 +1,5 @@
 ---
-- name: "{{ playbook_app }} | Create all the necessary directories"
+- name: "{{ playbook_app }} | Create all the necessary directories and files"
   ansible.builtin.include_tasks:
     file: "vols2dirs.yml"
   vars:
@@ -17,6 +17,7 @@
 
 - name: "{{ playbook_app }} | Deploy the dependencies"
   community.general.docker_container:
+    name: "{{ item.name }}"
     image: "{{ item.image }}:{{ item.tag }}"
     command: "{{ item.command | default(omit) }}"
     pull: "{{ item.pull | default(omit) }}"
@@ -33,6 +34,7 @@
     hostname: "{{ item.hostname | default(omit) }}"
     volumes: "{{ item.volumes | default(omit) }}"
     devices: "{{ item.devices | default(omit) }}"
+    auto_remove: "{{ item.auto_remove | default(omit) }}"
     recreate: "{{ item.recreate | default(omit) }}"
     log_driver: "{{ log_driver | default(omit) }}"
     log_opt: "{{ log_opt | default(omit) }}"
@@ -59,6 +61,7 @@
     hostname: "{{ deploy_hostname | default(omit) }}"
     volumes: "{{ deploy_volumes | default(omit) }}"
     devices: "{{ deploy_devices | default(omit) }}"
+    auto_remove: "{{ deploy_auto_remove | default(omit) }}"
     recreate: "{{ config.changed | default(omit) }}"
     log_driver: "{{ log_driver | default(omit) }}"
     log_opt: "{{ log_opt | default(omit) }}"

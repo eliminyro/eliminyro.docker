@@ -1,13 +1,16 @@
 ---
-
 - name: "Vols2dirs | Empty out the dir list"
   ansible.builtin.set_fact:
-    dirs: []
+    all_paths: []
 
 - name: "Vols2dirs | Get the path for directory on the host"
   ansible.builtin.set_fact:
-    dirs: "{{ dirs + [ item.split(':') | first ] }}"
-  with_items: "{{ vols2dirs }}"
+    all_paths: "{{ vols2dirs | map('split', ':') | map('first') | list }}"
+
+- name: "Vols2dirs | Split files and dirs"
+  set_fact:
+    dir_paths: "{{ all_paths | reject('regex', '\\..{2,4}$') | list }}"
+    file_paths: "{{ all_paths | select('regex', '\\..{2,4}$') | reject('search', '.sock') | list }}"
 
 - name: "Vols2dirs | Create necessary dirs"
   ansible.builtin.file:
@@ -15,9 +18,7 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: "directory"
-  with_items: "{{ dirs }}"
-  when:
-    - not (item | regex_search('\..{2,4}$'))
+  with_items: "{{ dir_paths }}"
 
 - name: "Vols2dirs | Create files if they don't exist"
   ansible.builtin.file:
@@ -27,7 +28,4 @@
     state: "touch"
     access_time: "preserve"
     modification_time: "preserve"
-  with_items: "{{ dirs }}"
-  when:
-    - item | regex_search('\..{2,4}$')
-    - not ".sock" in item
+  with_items: "{{ file_paths }}"
