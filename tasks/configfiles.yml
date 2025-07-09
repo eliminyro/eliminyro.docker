@@ -1,0 +1,24 @@
+---
+
+- name: "{{ playbook_app }} | Copy config files"
+  ansible.builtin.copy:
+    src: "{{ playbook_app + '/' + item.name }}"
+    dest: "{{ dockerdir + '/' + playbook_app + '/' + item.path + '/' + item.name }}"
+    owner: "{{ item.user | default(ansible_user) }}"
+    group: "{{ item.group | default(ansible_user) }}"
+    mode: "{{ item.mode | default('0644') }}"
+  register: "config"
+  with_items: "{{ config_filelist }}"
+  when:
+    - config_filelist is defined and config_filelist
+
+- name: "{{ playbook_app }} | Generate config files from templates"
+  ansible.builtin.template:
+    src: "{{ playbook_app + '/' + item.name }}.j2"
+    dest: "{{ dockerdir + '/' + playbook_app + '/' + item.path + '/' + item.name }}"
+    owner: "{{ item.user | default(ansible_user) }}"
+    group: "{{ item.group | default(ansible_user) }}"
+    mode: "{{ item.mode | default('0644') }}"
+  with_items: "{{ config_templatelist }}"
+  when:
+    - config_templatelist is defined and config_templatelist
