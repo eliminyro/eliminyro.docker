@@ -17,6 +17,7 @@
 
 - name: "{{ playbook_app }} | Deploy the dependencies"
   community.general.docker_container:
+    name: "{{ item.name }}"
     image: "{{ item.image }}:{{ item.tag }}"
     command: "{{ item.command | default(omit) }}"
     pull: "{{ item.pull | default(omit) }}"
