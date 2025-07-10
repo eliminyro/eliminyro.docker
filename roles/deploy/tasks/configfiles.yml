@@ -1,9 +1,8 @@
 ---
-
 - name: "{{ playbook_app }} | Copy config files"
   ansible.builtin.copy:
     src: "{{ playbook_app + '/' + item.name }}"
-    dest: "{{ dockerdir + '/' + playbook_app + '/' + item.path + '/' + item.name }}"
+    dest: "{{ dockerdir ~ '/' ~ (item.alt_app | default(playbook_app)) ~ '/' ~ (item.path ~ '/' if item.path is defined and item.path else '') ~ item.name }}"
     owner: "{{ item.user | default(ansible_user) }}"
     group: "{{ item.group | default(ansible_user) }}"
     mode: "{{ item.mode | default('0644') }}"
@@ -15,7 +14,7 @@
 - name: "{{ playbook_app }} | Generate config files from templates"
   ansible.builtin.template:
     src: "{{ playbook_app + '/' + item.name }}.j2"
-    dest: "{{ dockerdir + '/' + playbook_app + '/' + item.path + '/' + item.name }}"
+    dest: "{{ dockerdir ~ '/' ~ (item.alt_app | default(playbook_app)) ~ '/' ~ (item.path ~ '/' if item.path is defined and item.path else '') ~ item.name }}"
     owner: "{{ item.user | default(ansible_user) }}"
     group: "{{ item.group | default(ansible_user) }}"
     mode: "{{ item.mode | default('0644') }}"
