@@ -1,0 +1,7 @@
+---
+- name: "{{ playbook_app }} | Ensure Docker networks exist"
+  community.general.docker_network:
+    name: "{{ item.name }}"
+    ipam_config: "{{ item.ipam_config | default(omit) }}"
+    driver_options: "{{ item.driver_options | default(omit) }}"
+  with_items: "{{ docker_networks }}"

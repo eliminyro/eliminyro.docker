@@ -129,7 +129,7 @@ missing paths or from creation of directories where files should be.
 ```yaml
 - hosts: all
   roles:
-    - role: eliminyro.docker_deploy
+    - role: eliminyro.docker.deploy
       vars:
         playbook_app: myapp
         myapp_image: myorg/myapp
@@ -154,10 +154,6 @@ missing paths or from creation of directories where files should be.
         myapp_domain_name: "myapp.local"
         myapp_adguard_answer: "192.168.1.100"
 ```
-
-## License
-
-MIT
 
 ## Author Information
 

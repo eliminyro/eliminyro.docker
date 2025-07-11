@@ -1,0 +1,11 @@
+{
+  "hosts": [
+    "unix:///var/run/docker.sock",
+    "tcp://0.0.0.0:{{ docker_tls_port }}"
+  ],
+  "tls": true,
+  "tlscert": "/etc/docker/certs/server.pem",
+  "tlskey": "/etc/docker/certs/server-key.pem",
+  "tlsverify": {{ docker_tls_verify | lower }},
+  "tlscacert": "/etc/docker/certs/ca.pem"
+}

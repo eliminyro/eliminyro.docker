@@ -1,0 +1,17 @@
+---
+- name: Generate Docker daemon configuration
+  ansible.builtin.template:
+    src: "daemon.json.j2"
+    dest: "/etc/docker/daemon.json"
+
+- name: Add Docker service override file
+  ansible.builtin.file:
+    src: "override.conf"
+    dest: "/etc/systemd/system/docker.service.d/override.conf"
+    mode: "0644"
+  notify:
+    - reload systemd
+    - restart docker
+
+- name: Flush handlers to ensure Docker is configured before starting
+  ansible.builtin.meta: flush_handlers

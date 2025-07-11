@@ -1,0 +1,7 @@
+---
+docker_net_setup: False
+docker_tls_setup: False
+docker_tls_port: 2376
+docker_tls_verify: True
+docker_networks:
+  - name: "default"

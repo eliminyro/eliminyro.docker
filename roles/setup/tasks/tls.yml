@@ -1,0 +1,29 @@
+---
+- name: Ensure Docker TLS directories exist
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: "directory"
+    mode: 0755
+  loop:
+    - "/etc/systemd/system/docker.service.d"
+    - "/etc/docker/certs"
+
+- name: Generate key/cert pair for server via cfssl API
+  ansible.builtin.uri:
+    url: "{{ cfssl_url }}/api/v1/cfssl/newcert"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', docker_csr_template) | from_json }}"
+    return_content: yes
+  register: cert_result
+
+- name: Copy certificates to Docker TLS directory
+  ansible.builtin.copy:
+    dest: "/etc/docker/certs/{{ item.name }}.pem"
+    content: "{{ item.content }}"
+    mode: "0644"
+  notify: restart docker
+  loop:
+    - { name: "ca", content: cert_result.json.result.issuer }
+    - { name: "server", content: cert_result.json.result.certificate }
+    - { name: "server-key", content: cert_result.json.result.private_key }
