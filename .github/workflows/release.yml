@@ -48,7 +48,7 @@ jobs:
           # Determine bump type based on commit messages
           BUMP="none"
 
-          if echo "$COMMITS" | grep -iE "^\[BREAKING\]|BREAKING CHANGE:" > /dev/null; then
+          if echo "$COMMITS" | grep -iE "^\[MAJOR]\|^\[BREAKING\]|BREAKING CHANGE:" > /dev/null; then
             BUMP="major"
           elif echo "$COMMITS" | grep -iE "^\[FEAT\]|^\[FEATURE\]" > /dev/null; then
             BUMP="minor"
@@ -173,8 +173,15 @@ jobs:
           git tag ${{ steps.version.outputs.tag }}
           git push origin ${{ steps.version.outputs.tag }}
 
+      - name: Build Ansible collection
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          ansible-galaxy collection build --force
+          echo "COLLECTION_FILE=$(ls eliminyro-docker-*.tar.gz)" >> $GITHUB_ENV
+
       - name: Create GitHub Release
         if: steps.version.outputs.should_release == 'true'
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -184,3 +191,14 @@ jobs:
           body: ${{ steps.version.outputs.changelog }}
           draft: false
           prerelease: false
+
+      - name: Upload collection artifact to release
+        if: steps.version.outputs.should_release == 'true'
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ env.COLLECTION_FILE }}
+          asset_name: ${{ env.COLLECTION_FILE }}
+          asset_content_type: application/gzip

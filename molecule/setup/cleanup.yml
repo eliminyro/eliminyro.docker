@@ -1,0 +1,34 @@
+---
+- name: Cleanup
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Stop and remove cfssl container
+      community.docker.docker_container:
+        name: cfssl
+        state: absent
+        force_kill: true
+
+    - name: Remove test Docker network
+      community.docker.docker_network:
+        name: testnet
+        state: absent
+
+    - name: Remove Docker configuration files
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/docker/certs
+        - /etc/systemd/system/docker.service.d/override.conf
+        - /etc/docker/daemon.json
+
+    - name: Reload systemd and restart Docker service
+      ansible.builtin.systemd:
+        name: "{{ item }}"
+        state: restarted
+        daemon_reload: true
+      loop:
+        - "docker.service"
+        - "docker.socket"

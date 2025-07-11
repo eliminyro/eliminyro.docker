@@ -1,0 +1,30 @@
+---
+
+- name: "Config | Ensure SystemD directory exists for Docker service overrides"
+  ansible.builtin.file:
+    path: "/etc/systemd/system/docker.service.d"
+    state: "directory"
+    mode: "0755"
+
+- name: "Config | Generate Docker daemon configuration"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    mode: "0644"
+  loop:
+    - src: "daemon.json.j2"
+      dest: "/etc/docker/daemon.json"
+    - src: "override.conf.j2"
+      dest: "/etc/systemd/system/docker.service.d/override.conf"
+  register: setup_config
+
+- name: "Config | Ensure Docker service is enabled and restarted"
+  ansible.builtin.systemd:
+    name: "docker"
+    state: "restarted"
+    enabled: true
+    daemon_reload: true
+  when: >
+    setup_config.changed or
+    (setup_ca is defined and setup_ca is not skipped) or
+    (setup_cert is defined and setup_cert is not skipped)

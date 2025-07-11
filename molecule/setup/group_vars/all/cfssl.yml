@@ -1,0 +1,36 @@
+---
+dockerdir: /tmp
+
+playbook_app: "cfssl"
+
+cfssl_command: >-
+  serve -address=0.0.0.0
+  -ca=/etc/cfssl/ca.pem
+  -ca-key=/etc/cfssl/ca-key.pem
+  -config=/etc/cfssl/ca-config.json
+cfssl_image: "cfssl/cfssl"
+cfssl_image_tag: "master"
+cfssl_deps:
+  - name: "cfssl_initca"
+    image: "cfssl/cfssl"
+    tag: "master"
+    entrypoint: "/bin/sh"
+    command: >-
+      -c "cfssl gencert -initca /work/ca-csr.json | cfssljson -bare /work/ca"
+    auto_remove: True
+    volumes:
+      - "{{ dockerdir }}/cfssl:/work"
+    restart_policy: "no"
+cfssl_deps_run: true
+cfssl_hostname: "cfssl-test.localhost"
+cfssl_volumes:
+  - "{{ dockerdir }}/cfssl/ca.pem:/etc/cfssl/ca.pem"
+  - "{{ dockerdir }}/cfssl/ca-key.pem:/etc/cfssl/ca-key.pem"
+  - "{{ dockerdir }}/cfssl/ca-config.json:/etc/cfssl/ca-config.json"
+cfssl_configlist:
+  - name: "ca-config.json"
+  - name: "ca-csr.json"
+cfssl_ports:
+  - "8888:8888"
+cfssl_networks:
+  - name: testnet

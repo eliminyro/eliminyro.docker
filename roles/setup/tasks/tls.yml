@@ -1,0 +1,44 @@
+---
+- name: Ensure Docker TLS directories exist
+  ansible.builtin.file:
+    path: "/etc/docker/certs"
+    state: "directory"
+    mode: "0750"
+
+- name: Check if certificates already exist
+  ansible.builtin.stat:
+    path: "/etc/docker/certs/{{ item }}.pem"
+  register: setup_cert_files
+  loop:
+    - ca
+    - server
+    - server-key
+
+- name: Fetch CA certificate from cfssl
+  ansible.builtin.uri:
+    url: "{{ setup_cfssl_url }}/api/v1/cfssl/info"
+    method: POST
+    body_format: json
+    body: {}
+  register: setup_ca
+  when: setup_docker_tls_certs_regenerate or not (setup_cert_files.results | selectattr('item', 'equalto', 'ca') | first).stat.exists
+
+- name: Generate key/cert pair for server via cfssl API
+  ansible.builtin.uri:
+    url: "{{ setup_cfssl_url }}/api/v1/cfssl/newcert"
+    method: POST
+    body_format: json
+    body: "{{ lookup('template', setup_docker_csr_template) }}"
+  register: setup_cert
+  when: setup_docker_tls_certs_regenerate | default(false) or not (setup_cert_files.results | selectattr('item', 'equalto', 'server') | first).stat.exists
+
+- name: Copy certificates to Docker TLS directory
+  ansible.builtin.copy:
+    dest: "/etc/docker/certs/{{ item.name }}.pem"
+    content: "{{ item.content }}"
+    mode: "0640"
+  loop:
+    - { name: "ca", content: "{{ setup_ca.json.result.certificate }}" }
+    - { name: "server", content: "{{ setup_cert.json.result.certificate }}" }
+    - { name: "server-key", content: "{{ setup_cert.json.result.private_key }}" }
+  when: setup_ca is not skipped and setup_cert is not skipped
