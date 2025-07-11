@@ -1,0 +1,21 @@
+---
+
+# Docker network setup
+setup_docker_net: true
+setup_docker_networks:
+  - name: appnet
+    attachable: true
+    ipam_config:
+      - subnet: 172.26.0.0/16
+        gateway: 172.26.0.1
+
+# Docker daemon configuration
+setup_docker_config: true
+
+# TLS setup (enabled for testing)
+setup_docker_tls: true
+setup_docker_tls_port: 2376
+setup_docker_tls_verify: true
+setup_docker_server_name: localhost
+setup_cfssl_url: http://172.25.0.1:8888
+setup_docker_csr_template: csr.json.j2

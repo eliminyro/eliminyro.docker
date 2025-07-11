@@ -14,7 +14,10 @@ tags:
   - docker
   - container
   - ansible
-dependencies: {}
+  - linux
+dependencies:
+  community.general: ">=6.3.0"
+  community.docker: ">=4.6.1"
 build_ignore:
   - ".git"
   - ".github"
@@ -25,7 +28,7 @@ build_ignore:
   - ".vscode"
   - "molecule"
   - "tests"
-  - "files"
   - "*.pyc"
   - "__pycache__"
   - ".DS_Store"
+  - "TESTING.md"

@@ -1,135 +1,123 @@
 # Ansible Role: deploy
 
-This Ansible role automates the deployment of Docker containers, including
-dependencies, configuration files and directory creation. It is designed for
-flexible, parameterized deployments of containerized applications.
-
-## Features
-
-- Creates required directories for Docker volumes
-- Prepares and deploys configuration files and templates
-- Deploys dependency containers (sidecars, etc.)
-- Deploys the main application container
-- Supports custom finishing commands
+This role is part of the `eliminyro.docker` collection and automates the
+deployment of containerized applications on a Docker host. It supports preparing
+host directories, copying configuration files, rendering templates, deploying
+optional sidecar/dependency containers and deploying the main application
+container with flexible runtime options. A final command can also be executed
+after deployment.
 
 ## Requirements
 
-- Ansible 2.10+
-- Python 3.x
-- Required collections:
-  - `community.general` (for `docker_container`)
-- Docker must be installed on the target host
+- Ansible 2.10+ and Python 3.x on the control node.
+- The `community.general` collection for the `docker_container` module.
+- Docker must already be installed on the target host.
+
+## Overview
+
+The role uses the variable `playbook_app` as the prefix for all other inputs.
+For a given application name `myapp`, you define variables like `myapp_image`,
+`myapp_ports`, etc., in your inventory or playbook. The role then maps these
+variables to internal variables such as `deploy_image`, `deploy_ports` and so
+on. This dynamic resolution avoids hard‑coding variable names inside the role.
+
+The deployment follows these steps:
+
+1. **Create directories and files** – Parses the host portion of volume mappings
+   and ensures directories or placeholder files exist.
+2. **Copy/render configuration files** – Processes lists of static config files
+   or Jinja2 templates and places them in a per‑application configuration
+   directory.
+3. **Deploy dependency containers** – Optionally runs any sidecar/dependency
+   containers before the main container.
+4. **Deploy the main application container** – Starts the application container
+   with the specified image, tags, networks, volumes, ports and other options.
+5. **Run finishing commands** – Optionally executes arbitrary shell commands at
+   the end of deployment.
 
 ## Role Variables
 
-### Dynamic Variable Resolution
+Variables are looked up dynamically based on `playbook_app`. The following
+tables describe both the internal variables used by the role and the
+corresponding user‑defined variables.
 
-Most variables for this role are dynamically resolved based on the value of
-`playbook_app`. For example, if `playbook_app: myapp`, then the role will look
-for variables like `myapp_image`, `myapp_ports`, `myapp_deps`, etc. You can
-define these variables in your playbook or inventory. The role will
-automatically map them to the correct internal variables.
+### Required
 
-#### Example Mapping
+| Variable       | Default | Description                                                                                                                                |
+| -------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `playbook_app` | _none_  | Name of the application/container. This value is used as a prefix for all dynamic variables and becomes the name of the running container. |
 
-| Internal Variable     | Looks up variable      |
-| --------------------- | ---------------------- |
-| deploy_image          | `myapp_image`          |
-| deploy_ports          | `myapp_ports`          |
-| deploy_deps           | `myapp_deps`           |
-| deploy_configlist     | `myapp_configlist`     |
-| deploy_templatelist   | `myapp_templatelist`   |
-| deploy_volumes        | `myapp_volumes`        |
-| deploy_env            | `myapp_env`            |
-| deploy_command        | `myapp_command`        |
-| deploy_restart_policy | `myapp_restart_policy` |
-| ...                   | ...                    |
+### Dynamic Variable Mapping
 
-> **Note:** Replace `myapp` with your actual `playbook_app` value.
+For an application called `myapp`, the role looks up user variables with the
+`myapp_*` prefix and assigns them to internal variables. You can omit variables
+you do not need; they will default to `omit` and not be passed to the
+`docker_container` module.
 
-### Main Application Variables
+| Internal variable       | User‑defined variable                         | Description                                                                       |
+| ----------------------- | --------------------------------------------- | --------------------------------------------------------------------------------- |
+| `deploy_image`          | `<playbook_app>_image`                        | Image name of the main container. **Required**.                                   |
+| `deploy_image_tag`      | `<playbook_app>_image_tag` (default `latest`) | Image tag/version.                                                                |
+| `deploy_command`        | `<playbook_app>_command`                      | Command executed in the container.                                                |
+| `deploy_entrypoint`     | `<playbook_app>_entrypoint`                   | Override default entrypoint.                                                      |
+| `deploy_pull`           | `<playbook_app>_pull`                         | Whether to pull the image. Boolean or `omit`.                                     |
+| `deploy_restart_policy` | `<playbook_app>_restart_policy`               | Restart policy (e.g., `unless-stopped`). Defaults to `unless-stopped` if omitted. |
+| `deploy_networks`       | `<playbook_app>_networks`                     | List of Docker networks to attach.                                                |
+| `deploy_network_mode`   | `<playbook_app>_network_mode`                 | Network mode (e.g., `host`).                                                      |
+| `deploy_healthcheck`    | `<playbook_app>_healthcheck`                  | Dictionary for health check configuration.                                        |
+| `deploy_capabilities`   | `<playbook_app>_capabilities`                 | Additional Linux capabilities to add.                                             |
+| `deploy_security_opt`   | `<playbook_app>_security_opt`                 | Security options.                                                                 |
+| `deploy_privileged`     | `<playbook_app>_privileged`                   | Run container in privileged mode. Boolean.                                        |
+| `deploy_user`           | `<playbook_app>_user`                         | User to run inside the container.                                                 |
+| `deploy_hostname`       | `<playbook_app>_hostname`                     | Hostname for the container.                                                       |
+| `deploy_env`            | `<playbook_app>_env`                          | Dictionary of environment variables.                                              |
+| `deploy_ports`          | `<playbook_app>_ports`                        | List of port mappings (e.g., `"8080:80"`).                                        |
+| `deploy_labels`         | `<playbook_app>_labels`                       | Dictionary of Docker labels.                                                      |
+| `deploy_volumes`        | `<playbook_app>_volumes`                      | List of volume mappings (`host_path:container_path`).                             |
+| `deploy_devices`        | `<playbook_app>_devices`                      | List of device mappings.                                                          |
+| `deploy_auto_remove`    | `<playbook_app>_auto_remove`                  | Whether to remove the container on exit.                                          |
+| `deploy_recreate`       | `<playbook_app>_recreate`                     | Whether to recreate the container when configuration changes.                     |
+| `log_driver`            | `<playbook_app>_log_driver`                   | Log driver to use (e.g., `json-file`).                                            |
+| `log_opt`               | `<playbook_app>_log_opt`                      | Dictionary of log driver options.                                                 |
+| `deploy_deps`           | `<playbook_app>_deps`                         | List of dependency containers (see below).                                        |
+| `deploy_deps_run`       | `<playbook_app>_deps_run` (default `false`)   | Whether to actually run dependency containers.                                    |
+| `deploy_configlist`     | `<playbook_app>_configlist`                   | List of static files to copy into the configuration directory.                    |
+| `deploy_templatelist`   | `<playbook_app>_templatelist`                 | List of Jinja2 templates to render.                                               |
+| `deploy_finish`         | `<playbook_app>_finish`                       | Shell command(s) executed at the end of the deployment.                           |
 
-| Variable              | Type   | Description                                                                         |
-| --------------------- | ------ | ----------------------------------------------------------------------------------- |
-| playbook_app          | string | Name of the main application/container. Used as a prefix for all dynamic variables. |
-| deploy_image          | string | Docker image for the main container (from `<playbook_app>_image`).                  |
-| deploy_image_tag      | string | Tag for the main image (from `<playbook_app>_image_tag`). Default: `latest`.        |
-| deploy_command        | string | Command to run in the main container.                                               |
-| deploy_pull           | bool   | Whether to pull the image.                                                          |
-| deploy_restart_policy | string | Docker restart policy.                                                              |
-| deploy_networks       | list   | List of Docker networks to connect.                                                 |
-| deploy_network_mode   | string | Docker network mode.                                                                |
-| deploy_healthcheck    | dict   | Healthcheck configuration.                                                          |
-| deploy_capabilities   | list   | Linux capabilities to add.                                                          |
-| deploy_security_opt   | list   | Security options.                                                                   |
-| deploy_privileged     | bool   | Run container in privileged mode.                                                   |
-| deploy_user           | string | User to run as.                                                                     |
-| deploy_env            | dict   | Environment variables.                                                              |
-| deploy_ports          | list   | Port mappings.                                                                      |
-| deploy_hostname       | string | Hostname for the container.                                                         |
-| deploy_volumes        | list   | Volume mappings.                                                                    |
-| deploy_devices        | list   | Device mappings.                                                                    |
-| log_driver            | string | Docker log driver.                                                                  |
-| log_opt               | dict   | Log driver options.                                                                 |
+#### Dependency containers (`deploy_deps`)
 
-### Dependencies
+The `deploy_deps` list allows you to define sidecar or dependency containers.
+Each item should be a dictionary with keys such as `name`, `image`, `tag`,
+`command`, `entrypoint`, `pull`, `restart_policy`, `networks`, `network_mode`,
+`healthcheck`, `capabilities`, `security_opt`, `privileged`, `user`, `env`,
+`labels`, `ports`, `hostname`, `volumes`, `devices`, `auto_remove`, and
+`recreate`. Unspecified keys will be omitted when launching the container.
 
-- `deploy_deps` (list): List of dependency containers. Each item should be a
-  dict with keys like `name`, `image`, `tag`, `command`, `networks`, etc.
-  (resolved from `<playbook_app>_deps`).
+#### Configuration files and templates
 
-### Configuration Files
+Use `deploy_configlist` to copy static files and `deploy_templatelist` to render
+templates. Each entry must include `name` and `path` (relative inside the
+container); optional keys are `user`, `group`, `mode` and `alt_app` to override
+`playbook_app`. Files are sourced from `<role_path>/files/<playbook_app>/<name>`
+and templates from `<role_path>/templates/<playbook_app>/<name>.j2`.
 
-- `deploy_configlist` (list): List of config files to copy (from
-  `<playbook_app>_configlist`). Each item should be a dictionary as described
-  below.
-- `deploy_templatelist` (list): List of Jinja2 templates to render (from
-  `<playbook_app>_templatelist`). Each item should be a dictionary as described
-  below.
+When volume mappings are provided, the role parses the host paths and ensures
+directories exist. If a path appears to be a file (has an extension other than
+`.sock`), a placeholder file is created with preserved timestamps.
 
-| Key   | Type   | Description                                             |
-| ----- | ------ | ------------------------------------------------------- |
-| name  | string | Filename of the config file or template.                |
-| path  | string | Relative path inside the container or config directory. |
-| user  | string | (Optional) File owner. Defaults to `ansible_user`.      |
-| group | string | (Optional) File group. Defaults to `ansible_user`.      |
-| mode  | string | (Optional) File mode (e.g. `0644`). Defaults to `0644`. |
+### Finishing commands
 
-### Directory Creation
-
-- `deploy_volumes` (list): List of volume paths to create as directories (from
-  `<playbook_app>_volumes`).
-
-When you specify volume mappings, this role will:
-
-1. Parse each volume string (e.g., `/host/path:/container/path`) and extract the
-   host-side path.
-2. For each host path:
-   - If the path does not look like a file (does not end with a file extension),
-     it will ensure the directory exists, creating it if necessary, with the
-     current Ansible user as owner and group.
-   - If the path looks like a file (matches a file extension, but not `.sock`),
-     it will ensure the file exists (using `state: touch`), preserving access
-     and modification times, and setting the current Ansible user as owner and
-     group.
-
-This ensures that all required directories and files for Docker volume mounts
-exist on the host before containers are started, preventing Docker errors due to
-missing paths or from creation of directories where files should be.
-
-> **Note:** Socket files (ending with `.sock`) are ignored and not created.
-
-### Finishing Commands (Optional)
-
-- `deploy_finish` (string): Raw shell command(s) to run at the end of the
-  deployment (from `<playbook_app>_finish`).
+If `deploy_finish` is set, its contents are executed on the remote host via the
+`raw` module at the end of the deployment. Use this to perform any additional
+initialization or cleanup tasks.
 
 ## Example Playbook
 
 ```yaml
 - hosts: all
   roles:
-    - role: eliminyro.docker_deploy
+    - role: eliminyro.docker.deploy
       vars:
         playbook_app: myapp
         myapp_image: myorg/myapp
@@ -137,28 +125,23 @@ missing paths or from creation of directories where files should be.
         myapp_ports:
           - "8080:80"
         myapp_networks:
-          - name: network
+          - name: "mynetwork"
         myapp_volumes:
           - /srv/myapp/data:/data
+        myapp_deps_run: true
         myapp_deps:
           - name: redis
             image: redis
-            tag: 7
+            tag: "7"
             ports:
               - "6379:6379"
             networks:
-              - name: network
-        myapp_adguard_url: "http://adguard.local:3000"
-        myapp_adguard_username: "admin"
-        myapp_adguard_password: "secret"
-        myapp_domain_name: "myapp.local"
-        myapp_adguard_answer: "192.168.1.100"
+              - name: "mynetwork"
 ```
 
-## License
+## Capabilities and Idempotency
 
-MIT
-
-## Author Information
-
-[Pavel Eliminyro](https://bc.eliminyro.me)
+This role is idempotent: running it multiple times will not redeploy unchanged
+containers or recreate existing files/directories. It does not implement
+rollback; you can remove created containers manually or via docker rm if
+necessary.

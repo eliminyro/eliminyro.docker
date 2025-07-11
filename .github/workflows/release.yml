@@ -173,8 +173,15 @@ jobs:
           git tag ${{ steps.version.outputs.tag }}
           git push origin ${{ steps.version.outputs.tag }}
 
+      - name: Build Ansible collection
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          ansible-galaxy collection build --force
+          echo "COLLECTION_FILE=$(ls eliminyro-docker-*.tar.gz)" >> $GITHUB_ENV
+
       - name: Create GitHub Release
         if: steps.version.outputs.should_release == 'true'
+        id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

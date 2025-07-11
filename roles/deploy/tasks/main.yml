@@ -1,25 +1,21 @@
 ---
-- name: "{{ playbook_app }} | Create all the necessary directories and files"
+- name: "Create all the necessary directories and files | {{ playbook_app }}"
   ansible.builtin.include_tasks:
     file: "vols2dirs.yml"
-  vars:
-    vols2dirs: "{{ deploy_volumes }}"
-  when: deploy_volumes is defined and deploy_volumes
+  when: deploy_volumes is defined and deploy_volumes | length > 0
 
-- name: "{{ playbook_app }} | Prepare config files"
+- name: "Prepare config files | {{ playbook_app }}"
   ansible.builtin.include_tasks:
     file: "configfiles.yml"
-  vars:
-    config_filelist: "{{ deploy_configlist }}"
-    config_templatelist: "{{ deploy_templatelist }}"
   when:
-    - (deploy_configlist is defined and deploy_configlist) or (deploy_templatelist is defined and deploy_templatelist)
+    - (deploy_configlist is defined and deploy_configlist | length > 0) or (deploy_templatelist is defined and deploy_templatelist | length > 0)
 
-- name: "{{ playbook_app }} | Deploy the dependencies"
+- name: "Deploy the dependencies | {{ playbook_app }}"
   community.general.docker_container:
     name: "{{ item.name }}"
     image: "{{ item.image }}:{{ item.tag }}"
     command: "{{ item.command | default(omit) }}"
+    entrypoint: "{{ item.entrypoint | default(omit) }}"
     pull: "{{ item.pull | default(omit) }}"
     restart_policy: "{{ item.restart_policy | default('unless-stopped') }}"
     networks: "{{ item.networks | default(omit) }}"
@@ -30,6 +26,7 @@
     privileged: "{{ item.privileged | default(omit) }}"
     user: "{{ item.user | default(omit) }}"
     env: "{{ item.env | default(omit) }}"
+    labels: "{{ item.labels | default(omit) }}"
     ports: "{{ item.ports | default(omit) }}"
     hostname: "{{ item.hostname | default(omit) }}"
     volumes: "{{ item.volumes | default(omit) }}"
@@ -40,13 +37,15 @@
     log_opt: "{{ log_opt | default(omit) }}"
   with_items: "{{ deploy_deps }}"
   when:
-    - deploy_deps is defined and deploy_deps
+    - deploy_deps is defined and deploy_deps | length > 0
+    - deploy_deps_run
 
-- name: "{{ playbook_app }} | Deploy the main container"
+- name: "Deploy the main container | {{ playbook_app }}"
   community.general.docker_container:
     name: "{{ playbook_app }}"
     image: "{{ deploy_image }}:{{ deploy_image_tag }}"
     command: "{{ deploy_command | default(omit) }}"
+    entrypoint: "{{ deploy_entrypoint | default(omit) }}"
     pull: "{{ deploy_pull | default(omit) }}"
     restart_policy: "{{ deploy_restart_policy | default('unless-stopped') }}"
     networks: "{{ deploy_networks | default(omit) }}"
@@ -57,15 +56,17 @@
     privileged: "{{ deploy_privileged | default(omit) }}"
     user: "{{ deploy_user | default(omit) }}"
     env: "{{ deploy_env | default(omit) }}"
+    labels: "{{ deploy_labels | default(omit) }}"
     ports: "{{ deploy_ports | default(omit) }}"
     hostname: "{{ deploy_hostname | default(omit) }}"
     volumes: "{{ deploy_volumes | default(omit) }}"
     devices: "{{ deploy_devices | default(omit) }}"
     auto_remove: "{{ deploy_auto_remove | default(omit) }}"
-    recreate: "{{ config.changed | default(omit) }}"
+    recreate: "{{ deploy_recreate | default(omit) }}"
     log_driver: "{{ log_driver | default(omit) }}"
     log_opt: "{{ log_opt | default(omit) }}"
 
-- name: "{{ playbook_app }} | Finishing commands"
+- name: "Finishing commands | {{ playbook_app }}"
   ansible.builtin.raw: "{{ deploy_finish }}"
-  when: deploy_finish is defined and deploy_finish
+  changed_when: false
+  when: deploy_finish is defined and deploy_finish | length > 0

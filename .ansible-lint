@@ -1,0 +1,13 @@
+# .ansible-lint
+---
+exclude_paths:
+  - .ansible/
+  - .cache/
+  - .github/
+  - tests/
+
+skip_list:
+  - yaml[line-length]
+  - name[missing]
+
+use_default_rules: true
