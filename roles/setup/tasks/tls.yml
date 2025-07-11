@@ -26,7 +26,6 @@
     dest: "/etc/docker/certs/{{ item.name }}.pem"
     content: "{{ item.content }}"
     mode: "0644"
-  notify: restart docker
   loop:
     - { name: "ca", content: "{{ ca.json.result.certificate }}" }
     - { name: "server", content: "{{ cert.json.result.certificate }}" }
