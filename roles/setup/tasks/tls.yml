@@ -1,12 +1,9 @@
 ---
 - name: Ensure Docker TLS directories exist
   ansible.builtin.file:
-    path: "{{ item }}"
+    path: "/etc/docker/certs"
     state: "directory"
-    mode: 0755
-  loop:
-    - "/etc/systemd/system/docker.service.d"
-    - "/etc/docker/certs"
+    mode: 0750
 
 - name: Generate key/cert pair for server via cfssl API
   ansible.builtin.uri:

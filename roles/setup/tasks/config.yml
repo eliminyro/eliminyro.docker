@@ -1,11 +1,17 @@
 ---
+- name: Ensure SystemD directory exists for Docker service overrides
+  ansible.builtin.file:
+    path: "/etc/systemd/system/docker.service.d"
+    state: "directory"
+    mode: 0755
+
 - name: Generate Docker daemon configuration
   ansible.builtin.template:
     src: "daemon.json.j2"
     dest: "/etc/docker/daemon.json"
 
 - name: Add Docker service override file
-  ansible.builtin.file:
+  ansible.builtin.copy:
     src: "override.conf"
     dest: "/etc/systemd/system/docker.service.d/override.conf"
     mode: "0644"
