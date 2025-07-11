@@ -62,7 +62,7 @@
     volumes: "{{ deploy_volumes | default(omit) }}"
     devices: "{{ deploy_devices | default(omit) }}"
     auto_remove: "{{ deploy_auto_remove | default(omit) }}"
-    recreate: "{{ config.changed | default(omit) }}"
+    recreate: "{{ deploy_recreate | default(omit) }}"
     log_driver: "{{ log_driver | default(omit) }}"
     log_opt: "{{ log_opt | default(omit) }}"
 

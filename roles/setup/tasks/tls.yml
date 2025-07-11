@@ -13,7 +13,7 @@
     url: "{{ cfssl_url }}/api/v1/cfssl/newcert"
     method: POST
     body_format: json
-    body: "{{ lookup('template', docker_csr_template) | from_json }}"
+    body: "{{ lookup('template', docker_csr_template) }}"
     return_content: yes
   register: cert_result
 
