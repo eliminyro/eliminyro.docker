@@ -24,6 +24,9 @@
     mode: "0644"
   notify: restart docker
   loop:
-    - { name: "ca", content: cert_result.json.result.issuer }
-    - { name: "server", content: cert_result.json.result.certificate }
-    - { name: "server-key", content: cert_result.json.result.private_key }
+    - { name: "ca", content: "{{ cert_result.json.result.issuer }}" }
+    - { name: "server", content: "{{ cert_result.json.result.certificate }}" }
+    - {
+        name: "server-key",
+        content: "{{ cert_result.json.result.private_key }}",
+      }
