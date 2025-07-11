@@ -1,0 +1,15 @@
+{
+  "hosts": [
+    "unix:///var/run/docker.sock",
+{% if setup_docker_tls %}
+    "tcp://0.0.0.0:{{ setup_docker_tls_port }}"
+  ],
+  "tls": true,
+  "tlscert": "/etc/docker/certs/server.pem",
+  "tlskey": "/etc/docker/certs/server-key.pem",
+  "tlsverify": {{ setup_docker_tls_verify | lower }},
+  "tlscacert": "/etc/docker/certs/ca.pem"
+{% else %}
+  ],
+{% endif %}
+}

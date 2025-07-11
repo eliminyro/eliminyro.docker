@@ -1,31 +1,39 @@
 ---
-- name: "Vols2dirs | Empty out the dir list"
+- name: "Vols2dirs | Empty out the dir list | {{ playbook_app }}"
   ansible.builtin.set_fact:
-    all_paths: []
+    deploy_all_paths: []
 
-- name: "Vols2dirs | Get the path for directory on the host"
+- name: "Vols2dirs | Get the path for directory on the host | {{ playbook_app }}"
   ansible.builtin.set_fact:
-    all_paths: "{{ vols2dirs | map('split', ':') | map('first') | list }}"
+    deploy_all_paths: "{{ deploy_volumes | map('split', ':') | map('first') | list }}"
+    deploy_create_dirs: "{{ lookup('vars', playbook_app + '_create_dirs', default=[]) }}"
 
-- name: "Vols2dirs | Split files and dirs"
-  set_fact:
-    dir_paths: "{{ all_paths | reject('regex', '\\..{2,4}$') | list }}"
-    file_paths: "{{ all_paths | select('regex', '\\..{2,4}$') | reject('search', '.sock') | list }}"
+- name: "Vols2dirs | Split files and dirs | {{ playbook_app }}"
+  ansible.builtin.set_fact:
+    deploy_dir_paths: "{{ (deploy_all_paths | reject('regex', '\\..{2,5}$') | list) + deploy_create_dirs }}"
+    deploy_file_paths: "{{ deploy_all_paths | select('regex', '\\..{2,5}$') | reject('search', '.sock') | list }}"
 
-- name: "Vols2dirs | Create necessary dirs"
+- name: "Vols2dirs | Create necessary dirs | {{ playbook_app }}"
   ansible.builtin.file:
     path: "{{ item }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
     state: "directory"
-  with_items: "{{ dir_paths }}"
+    mode: "0755"
+  loop: "{{ deploy_dir_paths }}"
+  when: item is regex('^/')
 
-- name: "Vols2dirs | Create files if they don't exist"
+- name: "Vols2dirs | Create parent directories for files | {{ playbook_app }}"
+  ansible.builtin.file:
+    path: "{{ item | dirname }}"
+    state: "directory"
+    mode: "0644"
+  loop: "{{ deploy_file_paths }}"
+  when: item is regex('^/') and (item | dirname) != '/'
+
+- name: "Vols2dirs | Create files if they don't exist | {{ playbook_app }}"
   ansible.builtin.file:
     path: "{{ item }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
     state: "touch"
+    mode: "0644"
     access_time: "preserve"
     modification_time: "preserve"
-  with_items: "{{ file_paths }}"
+  loop: "{{ deploy_file_paths }}"

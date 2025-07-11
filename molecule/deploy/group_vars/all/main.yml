@@ -1,0 +1,64 @@
+---
+dockerdir: /tmp/docker
+playbook_app: testapp
+testapp_image: nginx
+testapp_image_tag: latest
+testapp_ports:
+  - "8080:80"
+testapp_volumes:
+  - /tmp/testapp-data:/data
+  - /tmp/testapp-logs:/var/log/nginx
+  - /tmp/docker/testapp/nginx.conf:/etc/nginx/nginx.conf
+testapp_configlist:
+  - name: nginx.conf
+testapp_templatelist:
+  - name: index.html
+testapp_env:
+  TEST_ENV_VAR: "molecule-test-value"
+testapp_labels:
+  app: testapp
+  environment: test
+  version: "1.0"
+testapp_restart_policy: unless-stopped
+testapp_pull: true
+testapp_recreate: false
+testapp_deps_run: true
+testapp_deps:
+  - name: redis
+    image: redis
+    tag: "7-alpine"
+    ports:
+      - "6379:6379"
+    volumes:
+      - /tmp/redis-data:/data
+    labels:
+      app: redis
+      environment: test
+    restart_policy: unless-stopped
+    networks:
+      - name: testnet
+  - name: postgres
+    image: postgres
+    tag: "15-alpine"
+    ports:
+      - "5432:5432"
+    env:
+      POSTGRES_DB: testdb
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+    volumes:
+      - /tmp/postgres-data:/var/lib/postgresql/data
+    labels:
+      app: postgres
+      environment: test
+    restart_policy: unless-stopped
+    networks:
+      - name: testnet
+testapp_networks:
+  - name: testnet
+testapp_create_dirs:
+  - /tmp/testapp-extra
+  - /tmp/testapp-custom
+testapp_finish: |
+  echo "Deployment completed successfully" > /tmp/testapp-deployment-complete
+  date >> /tmp/testapp-deployment-complete

@@ -2,11 +2,11 @@
 name: Molecule CI
 
 on:
-  workflow_dispatch:
   pull_request:
-    types: [opened, synchronize, closed]
+    types: [opened, synchronize]
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   lint:
@@ -49,9 +49,34 @@ jobs:
         run: ansible-test sanity --docker -v
         working-directory: ansible_collections/eliminyro/docker
 
+  changes:
+    runs-on: ubuntu-latest
+    needs: sanity
+    outputs:
+      setup: ${{ steps.changes.outputs.setup }}
+      deploy: ${{ steps.changes.outputs.deploy }}
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v2
+        id: changes
+        with:
+          filters: |
+            setup:
+              - 'roles/setup/**'
+              - 'molecule/setup/**'
+            deploy:
+              - 'roles/deploy/**'
+              - 'molecule/deploy/**'
+
   molecule-setup:
     runs-on: ubuntu-24.04
-    needs: sanity
+    needs: changes
+    if: needs.changes.outputs.setup == 'true'
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -75,7 +100,8 @@ jobs:
           ANSIBLE_FORCE_COLOR: 1
 
   molecule-deploy:
-    needs: sanity
+    needs: changes
+    if: needs.changes.outputs.deploy == 'true'
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/eliminyro/molecule:latest
@@ -84,15 +110,16 @@ jobs:
         password: ${{ secrets.DOCKER_CONTAINER_REGISTRY_TOKEN }}
       options: --privileged
       volumes:
-        - /tmp/collection:/__w/eliminyro.adguard/eliminyro.adguard/ansible_collections/eliminyro/adguard
+        - /tmp:/tmp
+        - /tmp/collection:/__w/eliminyro.docker/eliminyro.docker/ansible_collections/eliminyro/docker
 
     steps:
       - uses: actions/checkout@v4
         with:
-          path: ansible_collections/eliminyro/adguard
+          path: ansible_collections/eliminyro/docker
       - name: Run molecule tests
-        run: molecule test
-        working-directory: ansible_collections/eliminyro/adguard
+        run: molecule test -s deploy
+        working-directory: ansible_collections/eliminyro/docker
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
