@@ -1,0 +1,8 @@
+---
+- name: "Networks | Ensure Docker networks exist"
+  community.general.docker_network:
+    name: "{{ item.name }}"
+    ipam_config: "{{ item.ipam_config | default(omit) }}"
+    driver_options: "{{ item.driver_options | default(omit) }}"
+    attachable: "{{ item.attachable | default(omit) }}"
+  with_items: "{{ setup_docker_networks }}"

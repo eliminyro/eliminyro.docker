@@ -1,0 +1,14 @@
+---
+- name: Verify that Docker is running with TLS
+  ansible.builtin.uri:
+    url: "https://{{ setup_docker_server_name }}:{{ setup_docker_tls_port }}/version"
+    method: GET
+    validate_certs: "{{ setup_docker_tls_verify }}"
+    ca_path: /etc/docker/certs/ca.pem
+    client_cert: /etc/docker/certs/server.pem
+    client_key: /etc/docker/certs/server-key.pem
+  register: setup_docker_tls_setup
+
+- name: Show Docker check result with FQDN
+  ansible.builtin.debug:
+    msg: "{{ setup_docker_tls_setup.json.Version }} running on {{ setup_docker_server_name }} with TLS enabled"

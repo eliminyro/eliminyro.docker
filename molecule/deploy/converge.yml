@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: True
+  become: True
+
+  roles:
+    - role: eliminyro.docker.deploy

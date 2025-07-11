@@ -1,0 +1,35 @@
+---
+- name: Cleanup
+  hosts: all
+  gather_facts: False
+  become: True
+  tasks:
+    - name: Remove test application files and directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/docker/testapp
+        - /tmp/testapp-data
+        - /tmp/testapp-logs
+        - /tmp/testapp-extra
+        - /tmp/testapp-custom
+        - /tmp/redis-data
+        - /tmp/postgres-data
+        - /tmp/testapp-deployment-complete
+        - /tmp/docker
+
+    - name: Stop and remove test containers
+      community.docker.docker_container:
+        name: "{{ item }}"
+        state: absent
+        force_kill: true
+      loop:
+        - redis
+        - postgres
+        - testapp
+
+    - name: Remove custom Docker network
+      community.docker.docker_network:
+        name: testnet
+        state: absent
