@@ -11,4 +11,4 @@
 
 - name: Show Docker check result with FQDN
   ansible.builtin.debug:
-    msg: "{{ docker_tls_setup.result }}"
+    msg: "{{ docker_tls_setup.json.Version }} running on {{ docker_server_name }} with TLS enabled"
