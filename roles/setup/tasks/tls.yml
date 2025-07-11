@@ -5,14 +5,21 @@
     state: "directory"
     mode: 0750
 
+- name: Fetch CA certificate from cfssl
+  ansible.builtin.uri:
+    url: "{{ cfssl_url }}/api/v1/cfssl/info"
+    method: POST
+    body_format: json
+    body: {}
+  register: ca
+
 - name: Generate key/cert pair for server via cfssl API
   ansible.builtin.uri:
     url: "{{ cfssl_url }}/api/v1/cfssl/newcert"
     method: POST
     body_format: json
     body: "{{ lookup('template', docker_csr_template) }}"
-    return_content: yes
-  register: cert_result
+  register: cert
 
 - name: Copy certificates to Docker TLS directory
   ansible.builtin.copy:
@@ -21,9 +28,9 @@
     mode: "0644"
   notify: restart docker
   loop:
-    - { name: "ca", content: "{{ cert_result.json.result.issuer }}" }
-    - { name: "server", content: "{{ cert_result.json.result.certificate }}" }
+    - { name: "ca", content: "{{ ca.json.result.certificate }}" }
+    - { name: "server", content: "{{ cert.json.result.certificate }}" }
     - {
         name: "server-key",
-        content: "{{ cert_result.json.result.private_key }}",
+        content: "{{ cert.json.result.private_key }}",
       }
