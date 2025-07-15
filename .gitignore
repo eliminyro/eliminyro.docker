@@ -1,3 +1,6 @@
 .vscode
 .prettierignore
 .prettierrc.json
+*.tar.gz
+ansible_collections/
+tests/output/
