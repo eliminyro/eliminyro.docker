@@ -1,4 +1,5 @@
 ---
+
 - name: "{{ playbook_app }} | Copy config files"
   ansible.builtin.copy:
     src: "{{ (item.alt_app | default(playbook_app)) + '/' + item.name }}"
@@ -8,8 +9,7 @@
     mode: "{{ item.mode | default('0644') }}"
   register: "config"
   with_items: "{{ config_filelist }}"
-  when:
-    - config_filelist is defined and config_filelist
+  when: config_filelist is defined and config_filelist
 
 - name: "{{ playbook_app }} | Generate config files from templates"
   ansible.builtin.template:
@@ -19,5 +19,4 @@
     group: "{{ item.group | default(ansible_user) }}"
     mode: "{{ item.mode | default('0644') }}"
   with_items: "{{ config_templatelist }}"
-  when:
-    - config_templatelist is defined and config_templatelist
+  when: config_templatelist is defined and config_templatelist
