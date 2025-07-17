@@ -18,7 +18,8 @@
     owner: "{{ ansible_user }}"
     group: "{{ ansible_user }}"
     state: "directory"
-  with_items: "{{ dir_paths }}"
+  loop: "{{ dir_paths }}"
+  when: item is regex('^/')
 
 - name: "Vols2dirs | Create files if they don't exist"
   ansible.builtin.file:
@@ -28,4 +29,4 @@
     state: "touch"
     access_time: "preserve"
     modification_time: "preserve"
-  with_items: "{{ file_paths }}"
+  loop: "{{ file_paths }}"
