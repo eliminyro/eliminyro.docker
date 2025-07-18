@@ -1,5 +1,6 @@
 ---
 deploy_deps: "{{ lookup('vars', playbook_app + '_deps') }}"
+deploy_deps_run: "{{ lookup('vars', playbook_app + '_deps_run', default=False) }}"
 
 deploy_configlist: "{{ lookup('vars', playbook_app + '_configlist') }}"
 deploy_templatelist: "{{ lookup('vars', playbook_app + '_templatelist') }}"

@@ -42,6 +42,7 @@
   with_items: "{{ deploy_deps }}"
   when:
     - deploy_deps is defined and deploy_deps
+    - deploy_deps_run
 
 - name: "{{ playbook_app }} | Deploy the main container"
   community.general.docker_container:
