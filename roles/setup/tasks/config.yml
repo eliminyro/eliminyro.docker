@@ -15,9 +15,10 @@
     src: "override.conf"
     dest: "/etc/systemd/system/docker.service.d/override.conf"
     mode: "0644"
-  notify:
-    - reload systemd
-    - restart docker
 
-- name: Flush handlers to ensure Docker is configured before starting
-  ansible.builtin.meta: flush_handlers
+- name: Ensure Docker service is enabled and started
+  ansible.builtin.systemd:
+    name: "docker"
+    state: "started"
+    enabled: true
+    daemon_reload: true

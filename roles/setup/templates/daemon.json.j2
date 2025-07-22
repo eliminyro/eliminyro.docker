@@ -1,6 +1,7 @@
 {
   "hosts": [
     "unix:///var/run/docker.sock",
+{% if docker_tls_setup %}
     "tcp://0.0.0.0:{{ docker_tls_port }}"
   ],
   "tls": true,
@@ -8,4 +9,7 @@
   "tlskey": "/etc/docker/certs/server-key.pem",
   "tlsverify": {{ docker_tls_verify | lower }},
   "tlscacert": "/etc/docker/certs/ca.pem"
+{% else %}
+  ],
+{% endif %}
 }

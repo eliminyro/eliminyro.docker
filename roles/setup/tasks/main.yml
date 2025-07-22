@@ -1,8 +1,4 @@
 ---
-- name: "Set up docker networks"
-  ansible.builtin.include_tasks: networks.yml
-  when: docker_net_setup is defined and docker_net_setup
-
 - name: "Set up docker TLS"
   ansible.builtin.include_tasks: tls.yml
   when: docker_tls_setup is defined and docker_tls_setup
@@ -14,3 +10,7 @@
 - name: "Validate Docker TLS setup"
   ansible.builtin.include_tasks: validate.yml
   when: docker_tls_setup is defined and docker_tls_setup
+
+- name: "Set up docker networks"
+  ansible.builtin.include_tasks: networks.yml
+  when: docker_net_setup is defined and docker_net_setup
