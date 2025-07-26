@@ -10,8 +10,8 @@
 
 - name: "Vols2dirs | Split files and dirs"
   set_fact:
-    dir_paths: "{{ (all_paths | reject('regex', '\\..{2,4}$') | list) + create_dirs }}"
-    file_paths: "{{ all_paths | select('regex', '\\..{2,4}$') | reject('search', '.sock') | list }}"
+    dir_paths: "{{ (all_paths | reject('regex', '\\..{2,5}$') | list) + create_dirs }}"
+    file_paths: "{{ all_paths | select('regex', '\\..{2,5}$') | reject('search', '.sock') | list }}"
 
 - name: "Vols2dirs | Create necessary dirs"
   ansible.builtin.file:
