@@ -16,8 +16,6 @@
 - name: "Vols2dirs | Create necessary dirs"
   ansible.builtin.file:
     path: "{{ item }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
     state: "directory"
   loop: "{{ dir_paths }}"
   when: item is regex('^/')
@@ -25,8 +23,6 @@
 - name: "Vols2dirs | Create files if they don't exist"
   ansible.builtin.file:
     path: "{{ item }}"
-    owner: "{{ ansible_user }}"
-    group: "{{ ansible_user }}"
     state: "touch"
     access_time: "preserve"
     modification_time: "preserve"
