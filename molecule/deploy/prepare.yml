@@ -1,0 +1,12 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Create custom Docker network
+      community.docker.docker_network:
+        name: testnet
+        driver: bridge
+        ipam_config:
+          - subnet: 172.25.0.0/16
+            gateway: 172.25.0.1

@@ -20,6 +20,13 @@
   loop: "{{ dir_paths }}"
   when: item is regex('^/')
 
+- name: "Vols2dirs | Create parent directories for files"
+  ansible.builtin.file:
+    path: "{{ item | dirname }}"
+    state: "directory"
+  loop: "{{ file_paths }}"
+  when: item is regex('^/') and (item | dirname) != '/'
+
 - name: "Vols2dirs | Create files if they don't exist"
   ansible.builtin.file:
     path: "{{ item }}"
