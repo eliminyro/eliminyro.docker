@@ -30,24 +30,24 @@ class TestContainerDeployment:
     """Test suite for container deployment functionality"""
     
     @pytest.mark.parametrize('name', ['testapp', 'redis', 'postgres'])
-    def test_containers_exist_and_running(self, name):
-        """Test that all expected containers exist and are running"""
-        client = docker.from_env()
+    def test_containers_exist_and_running(self, docker_client, name):
+        """Test that all expected containers exist and are running"""        
+        client = docker_client
         container = wait_for_container_ready(client, name)
         assert container is not None, f"Container {name} not found or not ready within timeout"
         assert container.status == 'running', f"Container {name} is not running, status: {container.status}"
     
-    def test_main_container_image(self):
+    def test_main_container_image(self, docker_client):
         """Test that main container uses correct image"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         image_tags = container.image.tags
         assert any('nginx' in tag for tag in image_tags), f"Expected nginx image, got: {image_tags}"
     
-    def test_dependency_container_image(self):
+    def test_dependency_container_image(self, docker_client):
         """Test that dependency container uses correct image"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'redis')
         assert container is not None
         image_tags = container.image.tags
@@ -56,9 +56,9 @@ class TestContainerDeployment:
 class TestContainerNetworking:
     """Test suite for container networking configuration"""
     
-    def test_main_container_ports_exposed(self):
+    def test_main_container_ports_exposed(self, docker_client):
         """Test that main container has correct ports exposed"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         
@@ -71,9 +71,9 @@ class TestContainerNetworking:
         assert '80/tcp' in port_bindings, "Port 80/tcp not bound to host"
         assert port_bindings['80/tcp'][0]['HostPort'] == '8080', "Port not mapped to 8080"
     
-    def test_dependency_container_ports(self):
+    def test_dependency_container_ports(self, docker_client):
         """Test that dependency container has correct ports exposed"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'redis')
         assert container is not None
         
@@ -84,9 +84,9 @@ class TestContainerNetworking:
 class TestContainerVolumes:
     """Test suite for container volume configuration"""
     
-    def test_main_container_volumes_mounted(self):
+    def test_main_container_volumes_mounted(self, docker_client):
         """Test that main container has correct volumes mounted"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         
@@ -108,9 +108,9 @@ class TestContainerVolumes:
         assert config_mount is not None
         assert config_mount['Source'] == '/tmp/docker/testapp/nginx.conf', "Config volume source path incorrect"
     
-    def test_volume_directories_created(self):
+    def test_volume_directories_created(self, docker_client):
         """Test that volume directories are created on host"""
-        client = docker.from_env()
+        client = docker_client
         
         # Test by checking if we can find the created directories in the container's mounts
         container = get_container(client, 'testapp')
@@ -127,18 +127,18 @@ class TestContainerVolumes:
 class TestContainerConfiguration:
     """Test suite for container configuration settings"""
     
-    def test_main_container_restart_policy(self):
+    def test_main_container_restart_policy(self, docker_client):
         """Test that containers have correct restart policy"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         
         restart_policy = container.attrs['HostConfig']['RestartPolicy']
         assert restart_policy['Name'] == 'unless-stopped', f"Expected restart policy 'unless-stopped', got: {restart_policy['Name']}"
     
-    def test_dependency_container_restart_policy(self):
+    def test_dependency_container_restart_policy(self, docker_client):
         """Test that dependency containers have correct restart policy"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'redis')
         assert container is not None
         
@@ -148,9 +148,9 @@ class TestContainerConfiguration:
 class TestContainerHealth:
     """Test suite for container health and readiness"""
     
-    def test_main_container_responds_to_http(self):
+    def test_main_container_responds_to_http(self, docker_client):
         """Test that main container responds to HTTP requests"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         
@@ -162,9 +162,9 @@ class TestContainerHealth:
         # For now, just verify the port is bound
         assert host_port == '8080', "HTTP port not correctly bound"
     
-    def test_containers_have_no_critical_logs(self):
+    def test_containers_have_no_critical_logs(self, docker_client):
         """Test that containers don't have critical error logs"""
-        client = docker.from_env()
+        client = docker_client
         
         for container_name in ['testapp', 'redis']:
             container = get_container(client, container_name)
@@ -184,9 +184,9 @@ class TestContainerHealth:
 class TestConfigFileDeployment:
     """Test suite for configuration file deployment"""
     
-    def test_config_file_copied_to_host(self):
+    def test_config_file_copied_to_host(self, docker_client):
         """Test that config files are properly copied to host"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         

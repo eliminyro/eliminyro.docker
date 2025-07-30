@@ -17,9 +17,9 @@ def get_container(client, name):
 class TestEdgeCases:
     """Test suite for edge cases and error conditions"""
     
-    def test_container_names_are_unique(self):
+    def test_container_names_are_unique(self, docker_client):
         """Test that container names don't conflict"""
-        client = docker.from_env()
+        client = docker_client
         containers = client.containers.list(all=True)
         
         # Get containers created by our test
@@ -33,9 +33,9 @@ class TestEdgeCases:
         assert 'testapp' in container_names, "Main container 'testapp' not found"
         assert 'redis' in container_names, "Dependency container 'redis' not found"
     
-    def test_container_resource_limits(self):
+    def test_container_resource_limits(self, docker_client):
         """Test that containers don't have unexpected resource limits"""
-        client = docker.from_env()
+        client = docker_client
         
         for container_name in ['testapp', 'redis']:
             container = get_container(client, container_name)
@@ -48,9 +48,9 @@ class TestEdgeCases:
             # In our test setup, we don't set memory limits
             assert memory_limit == 0, f"Container {container_name} has unexpected memory limit: {memory_limit}"
     
-    def test_container_network_mode(self):
+    def test_container_network_mode(self, docker_client):
         """Test that containers use expected network mode"""
-        client = docker.from_env()
+        client = docker_client
         
         # Test main container uses custom network
         testapp = get_container(client, 'testapp')
@@ -72,9 +72,9 @@ class TestEdgeCases:
             network_mode = container.attrs['HostConfig']['NetworkMode']
             assert network_mode in ['default', 'bridge'], f"Container {container_name} has unexpected network mode: {network_mode}"
 
-    def test_container_environment_variables(self):
+    def test_container_environment_variables(self, docker_client):
         """Test that containers have expected environment variables"""
-        client = docker.from_env()
+        client = docker_client
         
         # Test main container
         testapp = get_container(client, 'testapp')
@@ -106,9 +106,9 @@ class TestEdgeCases:
 class TestConfigurationValidation:
     """Test suite for configuration validation"""
     
-    def test_volume_mount_permissions(self):
+    def test_volume_mount_permissions(self, docker_client):
         """Test that volume mounts have correct permissions"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
         
@@ -119,9 +119,9 @@ class TestConfigurationValidation:
                 # Check that mount has read/write access by default
                 assert mount['RW'] == True, f"Mount {mount['Destination']} is not read-write"
     
-    def test_container_working_directory(self):
+    def test_container_working_directory(self, docker_client):
         """Test that containers have appropriate working directories"""
-        client = docker.from_env()
+        client = docker_client
         
         # Test main container
         testapp = get_container(client, 'testapp')
@@ -131,9 +131,9 @@ class TestConfigurationValidation:
         # Nginx container typically uses /
         assert working_dir in ['/', ''], f"Unexpected working directory for testapp: {working_dir}"
     
-    def test_container_user_configuration(self):
+    def test_container_user_configuration(self, docker_client):
         """Test that containers run with appropriate user configuration"""
-        client = docker.from_env()
+        client = docker_client
         
         for container_name in ['testapp', 'redis']:
             container = get_container(client, container_name)

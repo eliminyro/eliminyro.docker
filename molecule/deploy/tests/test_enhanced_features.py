@@ -13,9 +13,9 @@ def get_container(client, name):
 class TestEnhancedContainerFeatures:
     """Test suite for enhanced container features and dependencies"""
 
-    def test_all_dependency_containers_running(self):
+    def test_all_dependency_containers_running(self, docker_client):
         """Test that all dependency containers are running"""
-        client = docker.from_env()
+        client = docker_client
 
         expected_containers = ['testapp', 'redis', 'postgres']
         for container_name in expected_containers:
@@ -23,9 +23,9 @@ class TestEnhancedContainerFeatures:
             assert container is not None, f"Container {container_name} not found"
             assert container.status == 'running', f"Container {container_name} is not running"
 
-    def test_postgres_container_configuration(self):
+    def test_postgres_container_configuration(self, docker_client):
         """Test PostgreSQL container specific configuration"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'postgres')
         assert container is not None
 
@@ -51,9 +51,9 @@ class TestEnhancedContainerFeatures:
         assert '5432/tcp' in port_bindings, "PostgreSQL port 5432/tcp not bound"
         assert port_bindings['5432/tcp'][0]['HostPort'] == '5432', "PostgreSQL port not mapped correctly"
 
-    def test_redis_container_configuration(self):
+    def test_redis_container_configuration(self, docker_client):
         """Test Redis container specific configuration"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'redis')
         assert container is not None
 
@@ -74,9 +74,9 @@ class TestEnhancedContainerFeatures:
 class TestContainerLabels:
     """Test suite for container labels"""
 
-    def test_main_container_labels(self):
+    def test_main_container_labels(self, docker_client):
         """Test that main container has correct labels"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
 
@@ -89,9 +89,9 @@ class TestContainerLabels:
         assert 'version' in labels, "Version label not found"
         assert labels['version'] == '1.0', f"Version label incorrect: {labels['version']}"
 
-    def test_dependency_container_labels(self):
+    def test_dependency_container_labels(self, docker_client):
         """Test that dependency containers have correct labels"""
-        client = docker.from_env()
+        client = docker_client
 
         # Test Redis labels
         redis = get_container(client, 'redis')
@@ -115,9 +115,9 @@ class TestContainerLabels:
 class TestContainerEnvironmentVariables:
     """Test suite for container environment variables"""
 
-    def test_main_container_environment_variables(self):
+    def test_main_container_environment_variables(self, docker_client):
         """Test that main container has correct environment variables"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
 
@@ -137,9 +137,9 @@ class TestContainerEnvironmentVariables:
 class TestContainerNetworking:
     """Test suite for container networking"""
 
-    def test_containers_on_custom_network(self):
+    def test_containers_on_custom_network(self, docker_client):
         """Test that containers are connected to custom network"""
-        client = docker.from_env()
+        client = docker_client
 
         # Check if the custom network exists
         try:
@@ -161,9 +161,9 @@ class TestContainerNetworking:
 class TestVolumeManagement:
     """Test suite for volume management and directory creation"""
 
-    def test_additional_volumes_mounted(self):
+    def test_additional_volumes_mounted(self, docker_client):
         """Test that additional volumes are properly mounted"""
-        client = docker.from_env()
+        client = docker_client
         container = get_container(client, 'testapp')
         assert container is not None
 
@@ -237,9 +237,9 @@ class TestFinishCommands:
 class TestContainerPullAndRecreate:
     """Test suite for container pull and recreate settings"""
 
-    def test_container_pull_settings(self):
+    def test_container_pull_settings(self, docker_client):
         """Test that containers were created with correct pull settings"""
-        client = docker.from_env()
+        client = docker_client
 
         # This is more of a verification that the role accepted the pull parameter
         # The actual pulling behavior is harder to test in molecule
@@ -249,9 +249,9 @@ class TestContainerPullAndRecreate:
         # Verify the container was created (pull worked)
         assert container.status == 'running', "Container should be running if pull succeeded"
 
-    def test_container_recreate_settings(self):
+    def test_container_recreate_settings(self, docker_client):
         """Test that containers respect recreate settings"""
-        client = docker.from_env()
+        client = docker_client
 
         # With recreate: false, the container should exist and be running
         container = get_container(client, 'testapp')

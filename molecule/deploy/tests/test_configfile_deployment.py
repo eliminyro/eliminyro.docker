@@ -53,9 +53,9 @@ class TestConfigFileDeployment:
 class TestVolumeToDirectoryMapping:
     """Test suite for volume to directory mapping functionality (vols2dirs.yml)"""
 
-    def test_bind_mount_sources_created(self, host):
+    def test_bind_mount_sources_created(self, host, docker_client):
         """Test that bind mount source directories/files are created"""
-        client = docker.from_env()
+        client = docker_client
 
         try:
             container = client.containers.get('testapp')
@@ -79,9 +79,9 @@ class TestVolumeToDirectoryMapping:
             # Log for debugging
             print(f"Mount: {source_path} -> {destination_path}")
 
-    def test_volume_path_parsing(self, host):
+    def test_volume_path_parsing(self, host, docker_client):
         """Test that volume path parsing works correctly"""
-        client = docker.from_env()
+        client = docker_client
 
         try:
             container = client.containers.get('testapp')
@@ -122,10 +122,10 @@ class TestVolumeToDirectoryMapping:
 class TestConfigListProcessing:
     """Test suite for configuration list processing"""
 
-    def test_config_file_deployment_from_list(self, host):
+    def test_config_file_deployment_from_list(self, host, docker_client):
         """Test that config files are deployed according to configlist variable"""
         # This tests the configfiles.yml functionality
-        client = docker.from_env()
+        client = docker_client
 
         try:
             container = client.containers.get('testapp')
