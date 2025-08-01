@@ -1,0 +1,184 @@
+---
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      !contains(github.event.head_commit.message, '[skip ci]')
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      changelog: ${{ steps.version.outputs.changelog }}
+    steps:
+      - name: Check out the codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Get current version
+        id: current-version
+        run: |
+          CURRENT=$(grep "^version:" galaxy.yml | sed 's/version: //' | tr -d '"' | tr -d "'")
+          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+
+      - name: Determine version bump
+        id: version-bump
+        run: |
+          # Get commit messages since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --format="%s")
+          else
+            COMMITS=$(git log --oneline --format="%s" $LAST_TAG..HEAD)
+          fi
+          
+          echo "Commit messages to analyze:"
+          echo "$COMMITS"
+          
+          # Determine bump type based on commit messages
+          BUMP="none"
+          
+          if echo "$COMMITS" | grep -iE "^\[BREAKING\]|BREAKING CHANGE:" > /dev/null; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -iE "^\[FEAT\]|^\[FEATURE\]" > /dev/null; then
+            BUMP="minor"
+          elif echo "$COMMITS" | grep -iE "^\[FIX\]|^\[BUGFIX\]" > /dev/null; then
+            BUMP="patch"
+          elif echo "$COMMITS" | grep -iE "^\[CHORE\]|^\[DOCS\]|^\[STYLE\]|^\[REFACTOR\]|^\[TEST\]" > /dev/null; then
+            BUMP="patch"
+          fi
+          
+          echo "Determined bump type: $BUMP"
+          echo "bump=$BUMP" >> $GITHUB_OUTPUT
+
+      - name: Calculate new version
+        id: version
+        run: |
+          CURRENT="${{ steps.current-version.outputs.current }}"
+          BUMP="${{ steps.version-bump.outputs.bump }}"
+          
+          if [ "$BUMP" = "none" ]; then
+            echo "No version bump needed"
+            echo "version=$CURRENT" >> $GITHUB_OUTPUT
+            echo "tag=v$CURRENT" >> $GITHUB_OUTPUT
+            echo "should_release=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # Parse current version
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+          
+          # Bump version based on type
+          case $BUMP in
+            major)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              ;;
+            minor)
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              ;;
+            patch)
+              PATCH=$((PATCH + 1))
+              ;;
+          esac
+          
+          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+          TAG="v$NEW_VERSION"
+          
+          echo "New version: $NEW_VERSION"
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "should_release=true" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog
+        id: changelog
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          # Get commit messages since last tag for changelog
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            COMMITS=$(git log --oneline --format="- %s (%h)")
+          else
+            COMMITS=$(git log --oneline --format="- %s (%h)" $LAST_TAG..HEAD)
+          fi
+          
+          # Create changelog content
+          CHANGELOG="## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
+
+          ### Changes
+          $COMMITS"
+          
+          # Save changelog to file and output
+          echo "$CHANGELOG" > /tmp/changelog.md
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Update galaxy.yml version
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          sed -i "s/^version: .*/version: $NEW_VERSION/" galaxy.yml
+          
+          echo "Updated galaxy.yml version to: $NEW_VERSION"
+          cat galaxy.yml | grep "^version:"
+
+      - name: Update CHANGELOG.md
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          # Create backup of current changelog
+          cp CHANGELOG.md CHANGELOG.md.bak
+          
+          # Add new version to changelog
+          echo "# Changelog" > CHANGELOG.md.new
+          echo "" >> CHANGELOG.md.new
+          echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md.new
+          echo "" >> CHANGELOG.md.new
+          echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> CHANGELOG.md.new
+          echo "and this project adheres to" >> CHANGELOG.md.new
+          echo "[Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md.new
+          echo "" >> CHANGELOG.md.new
+          cat /tmp/changelog.md >> CHANGELOG.md.new
+          echo "" >> CHANGELOG.md.new
+          
+          # Append existing changelog content (skip header)
+          tail -n +10 CHANGELOG.md.bak >> CHANGELOG.md.new
+          
+          mv CHANGELOG.md.new CHANGELOG.md
+
+      - name: Commit version bump
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add galaxy.yml CHANGELOG.md
+          git commit -m "[RELEASE] Bump version to ${{ steps.version.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create and push tag
+        if: steps.version.outputs.should_release == 'true'
+        run: |
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin ${{ steps.version.outputs.tag }}
+
+      - name: Create GitHub Release
+        if: steps.version.outputs.should_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body: ${{ steps.version.outputs.changelog }}
+          draft: false
+          prerelease: false
