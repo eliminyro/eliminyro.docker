@@ -9,6 +9,8 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: |
       github.event_name == 'workflow_dispatch' ||
       !contains(github.event.head_commit.message, '[skip ci]')
@@ -39,13 +41,13 @@ jobs:
           else
             COMMITS=$(git log --oneline --format="%s" $LAST_TAG..HEAD)
           fi
-          
+
           echo "Commit messages to analyze:"
           echo "$COMMITS"
-          
+
           # Determine bump type based on commit messages
           BUMP="none"
-          
+
           if echo "$COMMITS" | grep -iE "^\[BREAKING\]|BREAKING CHANGE:" > /dev/null; then
             BUMP="major"
           elif echo "$COMMITS" | grep -iE "^\[FEAT\]|^\[FEATURE\]" > /dev/null; then
@@ -55,7 +57,7 @@ jobs:
           elif echo "$COMMITS" | grep -iE "^\[CHORE\]|^\[DOCS\]|^\[STYLE\]|^\[REFACTOR\]|^\[TEST\]" > /dev/null; then
             BUMP="patch"
           fi
-          
+
           echo "Determined bump type: $BUMP"
           echo "bump=$BUMP" >> $GITHUB_OUTPUT
 
@@ -64,7 +66,7 @@ jobs:
         run: |
           CURRENT="${{ steps.current-version.outputs.current }}"
           BUMP="${{ steps.version-bump.outputs.bump }}"
-          
+
           if [ "$BUMP" = "none" ]; then
             echo "No version bump needed"
             echo "version=$CURRENT" >> $GITHUB_OUTPUT
@@ -72,10 +74,10 @@ jobs:
             echo "should_release=false" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           # Parse current version
           IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-          
+
           # Bump version based on type
           case $BUMP in
             major)
@@ -91,10 +93,10 @@ jobs:
               PATCH=$((PATCH + 1))
               ;;
           esac
-          
+
           NEW_VERSION="$MAJOR.$MINOR.$PATCH"
           TAG="v$NEW_VERSION"
-          
+
           echo "New version: $NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "tag=$TAG" >> $GITHUB_OUTPUT
@@ -111,13 +113,13 @@ jobs:
           else
             COMMITS=$(git log --oneline --format="- %s (%h)" $LAST_TAG..HEAD)
           fi
-          
+
           # Create changelog content
           CHANGELOG="## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
 
           ### Changes
           $COMMITS"
-          
+
           # Save changelog to file and output
           echo "$CHANGELOG" > /tmp/changelog.md
           echo "changelog<<EOF" >> $GITHUB_OUTPUT
@@ -129,7 +131,7 @@ jobs:
         run: |
           NEW_VERSION="${{ steps.version.outputs.version }}"
           sed -i "s/^version: .*/version: $NEW_VERSION/" galaxy.yml
-          
+
           echo "Updated galaxy.yml version to: $NEW_VERSION"
           cat galaxy.yml | grep "^version:"
 
@@ -138,7 +140,7 @@ jobs:
         run: |
           # Create backup of current changelog
           cp CHANGELOG.md CHANGELOG.md.bak
-          
+
           # Add new version to changelog
           echo "# Changelog" > CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
@@ -150,10 +152,10 @@ jobs:
           echo "" >> CHANGELOG.md.new
           cat /tmp/changelog.md >> CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
-          
+
           # Append existing changelog content (skip header)
           tail -n +10 CHANGELOG.md.bak >> CHANGELOG.md.new
-          
+
           mv CHANGELOG.md.new CHANGELOG.md
 
       - name: Commit version bump
