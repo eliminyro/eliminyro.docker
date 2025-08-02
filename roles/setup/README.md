@@ -68,7 +68,3 @@ setup_docker_networks:
             ipam_config:
               subnet: "172.30.0.0/16"
 ```
-
-## Author
-
-Pavel Eliminyro public@eliminyro.me

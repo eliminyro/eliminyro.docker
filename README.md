@@ -1,6 +1,8 @@
 # Ansible Collection - eliminyro.docker
 
-[![CI](https://github.com/eliminyro/eliminyro.docker/workflows/CI/badge.svg)](https://github.com/eliminyro/eliminyro.docker/actions?query=workflow%3ACI)
+[![Molecule CI](https://github.com/eliminyro/eliminyro.docker/actions/workflows/main.yml/badge.svg)](https://github.com/eliminyro/eliminyro.docker/actions/workflows/main.yml)
+[![Release](https://github.com/eliminyro/eliminyro.docker/actions/workflows/release.yml/badge.svg)](https://github.com/eliminyro/eliminyro.docker/actions/workflows/release.yml)
+[![Ansible Galaxy](https://img.shields.io/badge/galaxy-eliminyro.docker-blue.svg)](https://galaxy.ansible.com/eliminyro/docker)
 
 A comprehensive Ansible collection for Docker management, providing automated
 setup, TLS configuration, and container deployment capabilities.
@@ -203,7 +205,7 @@ GPL-3.0-or-later
 
 ## Author
 
-Pavel Eliminyro - [public@eliminyro.me](mailto:public@eliminyro.me)
+[Pavel Eliminyro](https://bc.eliminyro.me)
 
 ## Support
 

@@ -145,7 +145,3 @@ This role is idempotent: running it multiple times will not redeploy unchanged
 containers or recreate existing files/directories. It does not implement
 rollback; you can remove created containers manually or via docker rm if
 necessary.
-
-## Author
-
-Pavel Eliminyro public@eliminyro.me
