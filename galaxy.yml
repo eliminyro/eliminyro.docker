@@ -1,11 +1,11 @@
 ---
 namespace: eliminyro
 name: docker
-version: 1.0.0
+version: 1.0.1
 description: Ansible collection for Docker management roles and playbooks.
 readme: README.md
 authors:
-  - [Pavel Eliminyro](https://bc.eliminyro.me)
+  - Pavel Eliminyro
 license:
   - GPL-3.0-or-later
 repository: https://github.com/eliminyro/eliminyro.docker

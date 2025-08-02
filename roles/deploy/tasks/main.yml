@@ -68,5 +68,5 @@
 
 - name: "Finishing commands | {{ playbook_app }}"
   ansible.builtin.raw: "{{ deploy_finish }}"
-  changed_when: false
+  changed_when: False
   when: deploy_finish is defined and deploy_finish | length > 0

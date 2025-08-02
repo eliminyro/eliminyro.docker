@@ -1,5 +1,4 @@
 ---
-
 - name: "Config | Ensure SystemD directory exists for Docker service overrides"
   ansible.builtin.file:
     path: "/etc/systemd/system/docker.service.d"
@@ -22,8 +21,8 @@
   ansible.builtin.systemd:
     name: "docker"
     state: "restarted"
-    enabled: true
-    daemon_reload: true
+    enabled: True
+    daemon_reload: True
   when: >
     setup_config.changed or
     (setup_ca is defined and setup_ca is not skipped) or

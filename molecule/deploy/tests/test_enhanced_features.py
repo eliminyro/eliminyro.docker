@@ -222,7 +222,7 @@ class TestContainerPullAndRecreate:
         """Test that containers respect recreate settings"""
         client = docker_client
 
-        # With recreate: false, the container should exist and be running
+        # With recreate: False, the container should exist and be running
         container = get_container(client, 'testapp')
         assert container is not None
         assert container.status == 'running', "Container should be running"

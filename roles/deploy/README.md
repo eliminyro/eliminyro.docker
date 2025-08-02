@@ -80,7 +80,7 @@ you do not need; they will default to `omit` and not be passed to the
 | `log_driver`            | `<playbook_app>_log_driver`                   | Log driver to use (e.g., `json-file`).                                            |
 | `log_opt`               | `<playbook_app>_log_opt`                      | Dictionary of log driver options.                                                 |
 | `deploy_deps`           | `<playbook_app>_deps`                         | List of dependency containers (see below).                                        |
-| `deploy_deps_run`       | `<playbook_app>_deps_run` (default `false`)   | Whether to actually run dependency containers.                                    |
+| `deploy_deps_run`       | `<playbook_app>_deps_run` (default `False`)   | Whether to actually run dependency containers.                                    |
 | `deploy_configlist`     | `<playbook_app>_configlist`                   | List of static files to copy into the configuration directory.                    |
 | `deploy_templatelist`   | `<playbook_app>_templatelist`                 | List of Jinja2 templates to render.                                               |
 | `deploy_finish`         | `<playbook_app>_finish`                       | Shell command(s) executed at the end of the deployment.                           |
@@ -128,7 +128,7 @@ initialization or cleanup tasks.
           - name: "mynetwork"
         myapp_volumes:
           - /srv/myapp/data:/data
-        myapp_deps_run: true
+        myapp_deps_run: True
         myapp_deps:
           - name: redis
             image: redis

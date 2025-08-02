@@ -9,12 +9,12 @@ rules:
     max: 160
   truthy:
     allowed-values: ["true", "false", "True", "False"]
-  comments-indentation: false # Required by ansible-lint
+  comments-indentation: False # Required by ansible-lint
   braces:
     max-spaces-inside: 1 # Required by ansible-lint
   octal-values:
-    forbid-implicit-octal: true # Required by ansible-lint
-    forbid-explicit-octal: true # Required by ansible-lint
+    forbid-implicit-octal: True # Required by ansible-lint
+    forbid-explicit-octal: True # Required by ansible-lint
 ignore: |
   .ansible/
   .git/

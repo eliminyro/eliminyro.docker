@@ -23,7 +23,7 @@
       community.docker.docker_container:
         name: "{{ item }}"
         state: absent
-        force_kill: true
+        force_kill: True
       loop:
         - redis
         - postgres

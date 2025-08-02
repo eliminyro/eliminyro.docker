@@ -1,5 +1,4 @@
 ---
-
 dependency:
   name: galaxy
   options:
@@ -25,7 +24,7 @@ provisioner:
 verifier:
   name: testinfra
   options:
-    sudo: true
+    sudo: True
 
 scenario:
   name: setup
