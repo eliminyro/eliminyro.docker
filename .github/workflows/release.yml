@@ -141,7 +141,10 @@ jobs:
           # Create backup of current changelog
           cp CHANGELOG.md CHANGELOG.md.bak
 
-          # Add new version to changelog
+          # Find the line number where the first version entry starts
+          FIRST_VERSION_LINE=$(grep -n "^## \[" CHANGELOG.md.bak | head -1 | cut -d: -f1)
+          
+          # Write header
           echo "# Changelog" > CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
           echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md.new
@@ -150,11 +153,15 @@ jobs:
           echo "and this project adheres to" >> CHANGELOG.md.new
           echo "[Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
+          
+          # Add new version entry
           cat /tmp/changelog.md >> CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
 
-          # Append existing changelog content (skip header)
-          tail -n +10 CHANGELOG.md.bak >> CHANGELOG.md.new
+          # Append existing version entries if they exist
+          if [ -n "$FIRST_VERSION_LINE" ]; then
+            tail -n +$FIRST_VERSION_LINE CHANGELOG.md.bak >> CHANGELOG.md.new
+          fi
 
           mv CHANGELOG.md.new CHANGELOG.md
 
