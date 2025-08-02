@@ -25,7 +25,7 @@
   ansible.builtin.file:
     path: "{{ item | dirname }}"
     state: "directory"
-    mode: "0644"
+    mode: "0755"
   loop: "{{ deploy_file_paths }}"
   when: item is regex('^/') and (item | dirname) != '/'
 
