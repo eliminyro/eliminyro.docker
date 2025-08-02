@@ -6,13 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2025-08-02
+## [1.0.1] - 2025-08-02
 
 ### Changes
-- Merge pull request #4 from eliminyro/add-roles (dba787c)
-- [MAJOR] Added roles 'deploy' and  'setup', added molecule test suite for both. (c0aa1de)
-- Initial commit (079ce60)
 
+- [FIX] Fix READMEs for privacy. (0f5cfec)
+
+## [1.0.0] - 2025-08-01
+
+### Changes
+
+- [MAJOR] Added roles 'deploy' and 'setup', added molecule test suite for both.
+  (c0aa1de)
 
 ### Added
 

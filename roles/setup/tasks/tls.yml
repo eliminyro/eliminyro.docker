@@ -30,7 +30,7 @@
     body_format: json
     body: "{{ lookup('template', setup_docker_csr_template) }}"
   register: setup_cert
-  when: setup_docker_tls_certs_regenerate | default(false) or not (setup_cert_files.results | selectattr('item', 'equalto', 'server') | first).stat.exists
+  when: setup_docker_tls_certs_regenerate | default(False) or not (setup_cert_files.results | selectattr('item', 'equalto', 'server') | first).stat.exists
 
 - name: Copy certificates to Docker TLS directory
   ansible.builtin.copy:
@@ -40,5 +40,5 @@
   loop:
     - { name: "ca", content: "{{ setup_ca.json.result.certificate }}" }
     - { name: "server", content: "{{ setup_cert.json.result.certificate }}" }
-    - { name: "server-key", content: "{{ setup_cert.json.result.private_key }}" }
+    - { name: "server-key", content: "{{ setup_cert.json.result.private_key }}", }
   when: setup_ca is not skipped and setup_cert is not skipped

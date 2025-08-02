@@ -1,14 +1,14 @@
 ---
 - name: Cleanup
   hosts: all
-  gather_facts: false
-  become: true
+  gather_facts: False
+  become: True
   tasks:
     - name: Stop and remove cfssl container
       community.docker.docker_container:
         name: cfssl
         state: absent
-        force_kill: true
+        force_kill: True
 
     - name: Remove test Docker network
       community.docker.docker_network:
@@ -28,7 +28,7 @@
       ansible.builtin.systemd:
         name: "{{ item }}"
         state: restarted
-        daemon_reload: true
+        daemon_reload: True
       loop:
         - "docker.service"
         - "docker.socket"

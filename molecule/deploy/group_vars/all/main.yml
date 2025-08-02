@@ -20,9 +20,9 @@ testapp_labels:
   environment: test
   version: "1.0"
 testapp_restart_policy: unless-stopped
-testapp_pull: true
-testapp_recreate: false
-testapp_deps_run: true
+testapp_pull: True
+testapp_recreate: False
+testapp_deps_run: True
 testapp_deps:
   - name: redis
     image: redis

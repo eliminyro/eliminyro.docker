@@ -64,12 +64,12 @@ settings.
 
 ```yaml
 - hosts: docker_hosts
-  become: true
+  become: True
   roles:
     - role: eliminyro.docker.setup
       vars:
-        docker_tls_setup: true
-        docker_net_setup: true
+        docker_tls_setup: True
+        docker_net_setup: True
         cfssl_url: "https://cfssl.example.com"
         docker_server_name: "{{ ansible_fqdn }}"
         docker_networks:
@@ -107,7 +107,7 @@ files, and volume management.
           - "/srv/webapp/data:/usr/share/nginx/html"
         webapp_networks:
           - name: "mynet"
-        webapp_deps_run: true
+        webapp_deps_run: True
         webapp_deps:
           - name: redis
             image: redis
@@ -121,15 +121,15 @@ files, and volume management.
 ```yaml
 - name: Setup Docker with TLS and deploy application
   hosts: docker_hosts
-  become: true
+  become: True
   tasks:
     # Setup Docker daemon and networks
     - name: Configure Docker with TLS
       include_role:
         name: eliminyro.docker.setup
       vars:
-        docker_tls_setup: true
-        docker_net_setup: true
+        docker_tls_setup: True
+        docker_net_setup: True
         cfssl_url: "https://cfssl.internal.example.com"
         docker_networks:
           - name: appnet
@@ -154,7 +154,7 @@ files, and volume management.
         myapp_env:
           APP_ENV: production
           DB_HOST: postgres
-        myapp_deps_run: true
+        myapp_deps_run: True
         myapp_deps:
           - name: postgres
             image: postgres

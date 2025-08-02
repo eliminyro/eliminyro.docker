@@ -102,11 +102,11 @@ jobs:
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "should_release=true" >> $GITHUB_OUTPUT
 
-      - name: Generate changelog
+      - name: Extract changelog from Unreleased section
         id: changelog
         if: steps.version.outputs.should_release == 'true'
         run: |
-          # Get commit messages since last tag for changelog
+          # Extract commits since last tag
           LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
           if [ -z "$LAST_TAG" ]; then
             COMMITS=$(git log --oneline --format="- %s (%h)")
@@ -114,11 +114,44 @@ jobs:
             COMMITS=$(git log --oneline --format="- %s (%h)" $LAST_TAG..HEAD)
           fi
 
-          # Create changelog content
+          # Find the line number of "## [Unreleased]"
+          unreleased_line=$(grep -n "^## \[Unreleased\]" CHANGELOG.md | head -1 | cut -d: -f1)
+          
+          if [ -z "$unreleased_line" ]; then
+            echo "No [Unreleased] section found in CHANGELOG.md, using commits only"
+            
+            CHANGELOG_CONTENT="### Changes
+            $COMMITS"
+          else
+            echo "Found [Unreleased] section at line $unreleased_line"
+            
+            # Find the next line that starts with "## [" after the Unreleased section
+            next_section_line=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md | grep -n "^## \[" | head -1 | cut -d: -f1)
+            
+            if [ -z "$next_section_line" ]; then
+              # No next section found, take everything after Unreleased
+              UNRELEASED_CONTENT=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md)
+            else
+              # Calculate the actual line number in the file
+              actual_next_line=$((unreleased_line + next_section_line))
+              # Extract content between Unreleased and next section
+              UNRELEASED_CONTENT=$(sed -n "$((unreleased_line + 1)),$((actual_next_line - 1))p" CHANGELOG.md)
+            fi
+
+            # Remove leading/trailing empty lines from unreleased content
+            UNRELEASED_CONTENT=$(echo "$UNRELEASED_CONTENT" | sed '/./,$!d' | sed ':a;/^\s*$/d;N;ba;')
+            
+            # Combine commits and unreleased content
+            CHANGELOG_CONTENT="### Changes
+          $COMMITS
+
+          $UNRELEASED_CONTENT"
+          fi
+
+          # Create final changelog with version header
           CHANGELOG="## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
 
-          ### Changes
-          $COMMITS"
+          $CHANGELOG_CONTENT"
 
           # Save changelog to file and output
           echo "$CHANGELOG" > /tmp/changelog.md
@@ -141,7 +174,10 @@ jobs:
           # Create backup of current changelog
           cp CHANGELOG.md CHANGELOG.md.bak
 
-          # Add new version to changelog
+          # Find the [Unreleased] section to remove it
+          unreleased_line=$(grep -n "^## \[Unreleased\]" CHANGELOG.md.bak | head -1 | cut -d: -f1)
+          
+          # Write header
           echo "# Changelog" > CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
           echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md.new
@@ -150,11 +186,27 @@ jobs:
           echo "and this project adheres to" >> CHANGELOG.md.new
           echo "[Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
+          
+          # Add new version entry
           cat /tmp/changelog.md >> CHANGELOG.md.new
           echo "" >> CHANGELOG.md.new
 
-          # Append existing changelog content (skip header)
-          tail -n +10 CHANGELOG.md.bak >> CHANGELOG.md.new
+          # Append existing version entries, excluding the [Unreleased] section
+          if [ -n "$unreleased_line" ]; then
+            # If there's an [Unreleased] section, skip it and everything until the next version
+            next_version_line=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md.bak | grep -n "^## \[" | head -1 | cut -d: -f1)
+            if [ -n "$next_version_line" ]; then
+              # Calculate the actual line number in the file for the next version
+              actual_next_line=$((unreleased_line + next_version_line))
+              tail -n +$actual_next_line CHANGELOG.md.bak >> CHANGELOG.md.new
+            fi
+          else
+            # No [Unreleased] section, find the first version entry and append from there
+            FIRST_VERSION_LINE=$(grep -n "^## \[" CHANGELOG.md.bak | head -1 | cut -d: -f1)
+            if [ -n "$FIRST_VERSION_LINE" ]; then
+              tail -n +$FIRST_VERSION_LINE CHANGELOG.md.bak >> CHANGELOG.md.new
+            fi
+          fi
 
           mv CHANGELOG.md.new CHANGELOG.md
 
@@ -177,7 +229,7 @@ jobs:
         if: steps.version.outputs.should_release == 'true'
         run: |
           ansible-galaxy collection build --force
-          echo "COLLECTION_FILE=$(ls eliminyro-docker-*.tar.gz)" >> $GITHUB_ENV
+          echo "COLLECTION_FILE=$(ls eliminyro-samba-*.tar.gz)" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         if: steps.version.outputs.should_release == 'true'
