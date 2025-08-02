@@ -1,0 +1,31 @@
+---
+- name: Prepare
+  hosts: all
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Install AppArmor utilities
+      ansible.builtin.package:
+        name: apparmor-utils
+        state: present
+
+    - name: Create custom Docker network for testing
+      community.docker.docker_network:
+        name: testnet
+        driver: bridge
+        ipam_config:
+          - subnet: 172.25.0.0/16
+            gateway: 172.25.0.1
+
+    - name: Deploy cfssl container with CA generation
+      ansible.builtin.include_role:
+        name: eliminyro.docker.deploy
+
+    - name: Wait for cfssl to be ready
+      ansible.builtin.uri:
+        url: http://172.25.0.1:8888/api/v1/cfssl/health
+        method: GET
+      register: cfssl_health
+      until: cfssl_health.status == 200
+      retries: 10
+      delay: 2

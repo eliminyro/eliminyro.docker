@@ -1,23 +1,21 @@
 ---
-- name: "{{ playbook_app }} | Copy config files"
+- name: "Copy config files | {{ playbook_app }}"
   ansible.builtin.copy:
     src: "{{ (item.alt_app | default(playbook_app)) + '/' + item.name }}"
     dest: "{{ dockerdir ~ '/' ~ (item.alt_app | default(playbook_app)) ~ '/' ~ (item.path ~ '/' if item.path is defined and item.path else '') ~ item.name }}"
-    owner: "{{ item.user | default(ansible_user) }}"
-    group: "{{ item.group | default(ansible_user) }}"
+    owner: "{{ item.user | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
     mode: "{{ item.mode | default('0644') }}"
-  register: "config"
-  with_items: "{{ config_filelist }}"
-  when:
-    - config_filelist is defined and config_filelist
+  register: "deploy_config"
+  with_items: "{{ deploy_configlist }}"
+  when: deploy_configlist is defined and deploy_configlist | length > 0
 
-- name: "{{ playbook_app }} | Generate config files from templates"
+- name: "Generate config files from templates | {{ playbook_app }}"
   ansible.builtin.template:
     src: "{{ (item.alt_app | default(playbook_app)) + '/' + item.name }}.j2"
     dest: "{{ dockerdir ~ '/' ~ (item.alt_app | default(playbook_app)) ~ '/' ~ (item.path ~ '/' if item.path is defined and item.path else '') ~ item.name }}"
-    owner: "{{ item.user | default(ansible_user) }}"
-    group: "{{ item.group | default(ansible_user) }}"
+    owner: "{{ item.user | default(omit) }}"
+    group: "{{ item.group | default(omit) }}"
     mode: "{{ item.mode | default('0644') }}"
-  with_items: "{{ config_templatelist }}"
-  when:
-    - config_templatelist is defined and config_templatelist
+  with_items: "{{ deploy_templatelist }}"
+  when: deploy_templatelist is defined and deploy_templatelist | length > 0
