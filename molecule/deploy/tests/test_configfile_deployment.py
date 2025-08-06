@@ -5,6 +5,17 @@ import docker
 class TestConfigFileDeployment:
     """Test suite specifically for configuration file deployment functionality"""
 
+    def test_playbook_app_directory_exists_and_permissions(self, host, ansible_vars):
+        """Test that playbook_app directory exists with correct permissions"""
+        dockerdir = ansible_vars['dockerdir']
+        playbook_app = ansible_vars['playbook_app']
+        app_dir_path = f"{dockerdir}/{playbook_app}"
+
+        app_dir = host.file(app_dir_path)
+        assert app_dir.exists, f"playbook_app directory {app_dir_path} does not exist"
+        assert app_dir.is_directory, f"playbook_app path {app_dir_path} exists but is not a directory"
+        assert app_dir.mode == 0o755, f"playbook_app directory has incorrect permissions: expected 0755, got {oct(app_dir.mode)}"
+
     def test_config_files_exist_on_host(self, host):
         """Test that configuration files are created on the host"""
         # Check if the nginx config file was created
