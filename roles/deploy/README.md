@@ -75,6 +75,7 @@ you do not need; they will default to `omit` and not be passed to the
 | `deploy_labels`         | `<playbook_app>_labels`                       | Dictionary of Docker labels.                                                      |
 | `deploy_volumes`        | `<playbook_app>_volumes`                      | List of volume mappings (`host_path:container_path`).                             |
 | `deploy_devices`        | `<playbook_app>_devices`                      | List of device mappings.                                                          |
+| `deploy_sysctls`        | `<playbook_app>_sysctls`                      | Dictionary of sysctl options to set in the container.                             |
 | `deploy_auto_remove`    | `<playbook_app>_auto_remove`                  | Whether to remove the container on exit.                                          |
 | `deploy_recreate`       | `<playbook_app>_recreate`                     | Whether to recreate the container when configuration changes.                     |
 | `log_driver`            | `<playbook_app>_log_driver`                   | Log driver to use (e.g., `json-file`).                                            |
@@ -91,7 +92,7 @@ The `deploy_deps` list allows you to define sidecar or dependency containers.
 Each item should be a dictionary with keys such as `name`, `image`, `tag`,
 `command`, `entrypoint`, `pull`, `restart_policy`, `networks`, `network_mode`,
 `healthcheck`, `capabilities`, `security_opt`, `privileged`, `user`, `env`,
-`labels`, `ports`, `hostname`, `volumes`, `devices`, `auto_remove`, and
+`labels`, `ports`, `hostname`, `volumes`, `devices`, `sysctls`, `auto_remove`, and
 `recreate`. Unspecified keys will be omitted when launching the container.
 
 #### Configuration files and templates
@@ -128,6 +129,9 @@ initialization or cleanup tasks.
           - name: "mynetwork"
         myapp_volumes:
           - /srv/myapp/data:/data
+        myapp_sysctls:
+          net.core.somaxconn: 1024
+          vm.swappiness: 10
         myapp_deps_run: True
         myapp_deps:
           - name: redis
