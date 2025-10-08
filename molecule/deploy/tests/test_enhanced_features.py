@@ -226,3 +226,25 @@ class TestContainerPullAndRecreate:
         container = get_container(client, 'testapp')
         assert container is not None
         assert container.status == 'running', "Container should be running"
+
+
+class TestContainerSysctls:
+    """Test suite for container sysctl settings"""
+
+    def test_container_sysctl_settings(self, docker_client):
+        """Test that container has correct sysctl settings applied"""
+        client = docker_client
+        container = get_container(client, 'testapp')
+        assert container is not None
+
+        # Check sysctl settings in container configuration
+        host_config = container.attrs['HostConfig']
+        sysctls = host_config.get('Sysctls', {})
+
+        assert 'net.core.somaxconn' in sysctls, "net.core.somaxconn sysctl not found"
+        assert sysctls[
+            'net.core.somaxconn'] == '1024', f"net.core.somaxconn value incorrect: {sysctls['net.core.somaxconn']}"
+
+        assert 'net.ipv4.ip_forward' in sysctls, "net.ipv4.ip_forward sysctl not found"
+        assert sysctls[
+            'net.ipv4.ip_forward'] == '1', f"net.ipv4.ip_forward value incorrect: {sysctls['net.ipv4.ip_forward']}"
