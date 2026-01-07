@@ -14,10 +14,7 @@ jobs:
     if: |
       github.event_name == 'workflow_dispatch' ||
       !contains(github.event.head_commit.message, '[skip ci]')
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
-      changelog: ${{ steps.version.outputs.changelog }}
+
     steps:
       - name: Check out the codebase
         uses: actions/checkout@v4
@@ -25,238 +22,51 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get current version
-        id: current-version
-        run: |
-          CURRENT=$(grep "^version:" galaxy.yml | sed 's/version: //' | tr -d '"' | tr -d "'")
-          echo "current=$CURRENT" >> $GITHUB_OUTPUT
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Determine version bump
-        id: version-bump
-        run: |
-          # Get commit messages since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log --oneline --format="%s")
-          else
-            COMMITS=$(git log --oneline --format="%s" $LAST_TAG..HEAD)
-          fi
-
-          echo "Commit messages to analyze:"
-          echo "$COMMITS"
-
-          # Determine bump type based on commit messages
-          BUMP="none"
-
-          if echo "$COMMITS" | grep -iE "^\[MAJOR\]|^\[BREAKING\]|BREAKING CHANGE:" > /dev/null; then
-            BUMP="major"
-          elif echo "$COMMITS" | grep -iE "^\[FEAT\]|^\[FEATURE\]" > /dev/null; then
-            BUMP="minor"
-          elif echo "$COMMITS" | grep -iE "^\[FIX\]|^\[BUGFIX\]" > /dev/null; then
-            BUMP="patch"
-          elif echo "$COMMITS" | grep -iE "^\[CHORE\]|^\[DOCS\]|^\[STYLE\]|^\[REFACTOR\]|^\[TEST\]" > /dev/null; then
-            BUMP="patch"
-          fi
-
-          echo "Determined bump type: $BUMP"
-          echo "bump=$BUMP" >> $GITHUB_OUTPUT
-
-      - name: Calculate new version
-        id: version
-        run: |
-          CURRENT="${{ steps.current-version.outputs.current }}"
-          BUMP="${{ steps.version-bump.outputs.bump }}"
-
-          if [ "$BUMP" = "none" ]; then
-            echo "No version bump needed"
-            echo "version=$CURRENT" >> $GITHUB_OUTPUT
-            echo "tag=v$CURRENT" >> $GITHUB_OUTPUT
-            echo "should_release=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Parse current version
-          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
-
-          # Bump version based on type
-          case $BUMP in
-            major)
-              MAJOR=$((MAJOR + 1))
-              MINOR=0
-              PATCH=0
-              ;;
-            minor)
-              MINOR=$((MINOR + 1))
-              PATCH=0
-              ;;
-            patch)
-              PATCH=$((PATCH + 1))
-              ;;
-          esac
-
-          NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-          TAG="v$NEW_VERSION"
-
-          echo "New version: $NEW_VERSION"
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "should_release=true" >> $GITHUB_OUTPUT
-
-      - name: Extract changelog from Unreleased section
-        id: changelog
-        if: steps.version.outputs.should_release == 'true'
-        run: |
-          # Extract commits since last tag
-          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
-          if [ -z "$LAST_TAG" ]; then
-            COMMITS=$(git log --oneline --format="- %s (%h)")
-          else
-            COMMITS=$(git log --oneline --format="- %s (%h)" $LAST_TAG..HEAD)
-          fi
-
-          # Find the line number of "## [Unreleased]"
-          unreleased_line=$(grep -n "^## \[Unreleased\]" CHANGELOG.md | head -1 | cut -d: -f1)
-          
-          if [ -z "$unreleased_line" ]; then
-            echo "No [Unreleased] section found in CHANGELOG.md, using commits only"
-            
-            CHANGELOG_CONTENT="### Changes
-            $COMMITS"
-          else
-            echo "Found [Unreleased] section at line $unreleased_line"
-            
-            # Find the next line that starts with "## [" after the Unreleased section
-            next_section_line=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md | grep -n "^## \[" | head -1 | cut -d: -f1)
-            
-            if [ -z "$next_section_line" ]; then
-              # No next section found, take everything after Unreleased
-              UNRELEASED_CONTENT=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md)
-            else
-              # Calculate the actual line number in the file
-              actual_next_line=$((unreleased_line + next_section_line))
-              # Extract content between Unreleased and next section
-              UNRELEASED_CONTENT=$(sed -n "$((unreleased_line + 1)),$((actual_next_line - 1))p" CHANGELOG.md)
-            fi
-
-            # Remove leading/trailing empty lines from unreleased content
-            UNRELEASED_CONTENT=$(echo "$UNRELEASED_CONTENT" | sed '/./,$!d' | sed ':a;/^\s*$/d;N;ba;')
-            
-            # Combine commits and unreleased content
-            CHANGELOG_CONTENT="### Changes
-          $COMMITS
-
-          $UNRELEASED_CONTENT"
-          fi
-
-          # Create final changelog with version header
-          CHANGELOG="## [${{ steps.version.outputs.version }}] - $(date +%Y-%m-%d)
-
-          $CHANGELOG_CONTENT"
-
-          # Save changelog to file and output
-          echo "$CHANGELOG" > /tmp/changelog.md
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Update galaxy.yml version
-        if: steps.version.outputs.should_release == 'true'
-        run: |
-          NEW_VERSION="${{ steps.version.outputs.version }}"
-          sed -i "s/^version: .*/version: $NEW_VERSION/" galaxy.yml
-
-          echo "Updated galaxy.yml version to: $NEW_VERSION"
-          cat galaxy.yml | grep "^version:"
-
-      - name: Update CHANGELOG.md
-        if: steps.version.outputs.should_release == 'true'
-        run: |
-          # Create backup of current changelog
-          cp CHANGELOG.md CHANGELOG.md.bak
-
-          # Find the [Unreleased] section to remove it
-          unreleased_line=$(grep -n "^## \[Unreleased\]" CHANGELOG.md.bak | head -1 | cut -d: -f1)
-          
-          # Write header
-          echo "# Changelog" > CHANGELOG.md.new
-          echo "" >> CHANGELOG.md.new
-          echo "All notable changes to this project will be documented in this file." >> CHANGELOG.md.new
-          echo "" >> CHANGELOG.md.new
-          echo "The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/)," >> CHANGELOG.md.new
-          echo "and this project adheres to" >> CHANGELOG.md.new
-          echo "[Semantic Versioning](https://semver.org/spec/v2.0.0.html)." >> CHANGELOG.md.new
-          echo "" >> CHANGELOG.md.new
-          
-          # Add new version entry
-          cat /tmp/changelog.md >> CHANGELOG.md.new
-          echo "" >> CHANGELOG.md.new
-
-          # Append existing version entries, excluding the [Unreleased] section
-          if [ -n "$unreleased_line" ]; then
-            # If there's an [Unreleased] section, skip it and everything until the next version
-            next_version_line=$(tail -n +$((unreleased_line + 1)) CHANGELOG.md.bak | grep -n "^## \[" | head -1 | cut -d: -f1)
-            if [ -n "$next_version_line" ]; then
-              # Calculate the actual line number in the file for the next version
-              actual_next_line=$((unreleased_line + next_version_line))
-              tail -n +$actual_next_line CHANGELOG.md.bak >> CHANGELOG.md.new
-            fi
-          else
-            # No [Unreleased] section, find the first version entry and append from there
-            FIRST_VERSION_LINE=$(grep -n "^## \[" CHANGELOG.md.bak | head -1 | cut -d: -f1)
-            if [ -n "$FIRST_VERSION_LINE" ]; then
-              tail -n +$FIRST_VERSION_LINE CHANGELOG.md.bak >> CHANGELOG.md.new
-            fi
-          fi
-
-          mv CHANGELOG.md.new CHANGELOG.md
+      - name: Prepare release
+        id: release
+        run: python scripts/release.py
 
       - name: Commit version bump
-        if: steps.version.outputs.should_release == 'true'
+        if: steps.release.outputs.should_release == 'true'
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add galaxy.yml CHANGELOG.md
-          git commit -m "[RELEASE] Bump version to ${{ steps.version.outputs.version }} [skip ci]"
+          git commit -m "[RELEASE] Bump version to ${{ steps.release.outputs.version }} [skip ci]"
           git push
 
       - name: Create and push tag
-        if: steps.version.outputs.should_release == 'true'
+        if: steps.release.outputs.should_release == 'true'
         run: |
-          git tag ${{ steps.version.outputs.tag }}
-          git push origin ${{ steps.version.outputs.tag }}
+          git tag ${{ steps.release.outputs.tag }}
+          git push origin ${{ steps.release.outputs.tag }}
+
+      - name: Set up Ansible
+        if: steps.release.outputs.should_release == 'true'
+        run: pip install ansible-core
 
       - name: Build Ansible collection
-        if: steps.version.outputs.should_release == 'true'
+        if: steps.release.outputs.should_release == 'true'
         run: |
           ansible-galaxy collection build --force
           echo "COLLECTION_FILE=$(ls eliminyro-docker-*.tar.gz)" >> $GITHUB_ENV
 
       - name: Create GitHub Release
-        if: steps.version.outputs.should_release == 'true'
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        if: steps.release.outputs.should_release == 'true'
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.version.outputs.tag }}
-          release_name: Release ${{ steps.version.outputs.version }}
-          body: ${{ steps.version.outputs.changelog }}
-          draft: false
-          prerelease: false
-
-      - name: Upload collection artifact to release
-        if: steps.version.outputs.should_release == 'true'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ env.COLLECTION_FILE }}
-          asset_name: ${{ env.COLLECTION_FILE }}
-          asset_content_type: application/gzip
+          tag_name: ${{ steps.release.outputs.tag }}
+          name: Release ${{ steps.release.outputs.version }}
+          body: ${{ steps.release.outputs.changelog }}
+          files: ${{ env.COLLECTION_FILE }}
 
       - name: Publish collection to Ansible Galaxy
-        if: steps.version.outputs.should_release == 'true'
+        if: steps.release.outputs.should_release == 'true'
         run: |
           ansible-galaxy collection publish ${{ env.COLLECTION_FILE }} --api-key ${{ secrets.GALAXY_API_KEY }}
         env:
