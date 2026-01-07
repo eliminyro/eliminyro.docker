@@ -1,16 +1,16 @@
 ---
 - name: "Setup | Set up docker TLS"
   ansible.builtin.include_tasks: tls.yml
-  when: setup_docker_tls is defined and setup_docker_tls
+  when: setup_docker_tls
 
 - name: "Setup | Configure Docker daemon"
   ansible.builtin.include_tasks: config.yml
-  when: (setup_docker_tls is defined and setup_docker_tls) or (setup_docker_config is defined and setup_docker_config)
+  when: setup_docker_tls or setup_docker_config
 
 - name: "Setup | Validate Docker TLS setup"
   ansible.builtin.include_tasks: validate.yml
-  when: setup_docker_tls is defined and setup_docker_tls
+  when: setup_docker_tls
 
 - name: "Setup | Set up docker networks"
   ansible.builtin.include_tasks: networks.yml
-  when: setup_docker_net is defined and setup_docker_net
+  when: setup_docker_net

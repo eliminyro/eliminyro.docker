@@ -1,30 +1,73 @@
 ---
-deploy_deps: "{{ lookup('vars', playbook_app + '_deps') }}"
-deploy_deps_run: "{{ lookup('vars', playbook_app + '_deps_run', default=False) }}"
+# Variable specification: maps variable suffixes to their default values
+# null means no default (variable is optional), actual values are defaults
+_app_var_specs:
+  # Container basics
+  image: null
+  image_tag: 'latest'
+  command: null
+  entrypoint: null
+  restart_policy: 'unless-stopped'
+  pull: null
+  recreate: null
+  auto_remove: null
 
-deploy_configlist: "{{ lookup('vars', playbook_app + '_configlist') }}"
-deploy_templatelist: "{{ lookup('vars', playbook_app + '_templatelist') }}"
+  # Networking
+  networks: null
+  network_mode: null
+  ports: null
+  hostname: null
 
-deploy_image: "{{ lookup('vars', playbook_app + '_image') }}"
-deploy_image_tag: "{{ lookup('vars', playbook_app + '_image_tag') }}"
-deploy_command: "{{ lookup('vars', playbook_app + '_command') }}"
-deploy_entrypoint: "{{ lookup('vars', playbook_app + '_entrypoint') }}"
-deploy_restart_policy: "{{ lookup('vars', playbook_app + '_restart_policy') }}"
-deploy_networks: "{{ lookup('vars', playbook_app + '_networks') }}"
-deploy_network_mode: "{{ lookup('vars', playbook_app + '_network_mode') }}"
-deploy_capabilities: "{{ lookup('vars', playbook_app + '_capabilities') }}"
-deploy_security_opt: "{{ lookup('vars', playbook_app + '_security_opt') }}"
-deploy_privileged: "{{ lookup('vars', playbook_app + '_privileged') }}"
-deploy_user: "{{ lookup('vars', playbook_app + '_user') }}"
-deploy_hostname: "{{ lookup('vars', playbook_app + '_hostname') }}"
-deploy_ports: "{{ lookup('vars', playbook_app + '_ports') }}"
-deploy_env: "{{ lookup('vars', playbook_app + '_env') }}"
-deploy_labels: "{{ lookup('vars', playbook_app + '_labels') }}"
-deploy_devices: "{{ lookup('vars', playbook_app + '_devices') }}"
-deploy_volumes: "{{ lookup('vars', playbook_app + '_volumes') }}"
-deploy_pull: "{{ lookup('vars', playbook_app + '_pull') }}"
-deploy_healthcheck: "{{ lookup('vars', playbook_app + '_healthcheck') }}"
-deploy_auto_remove: "{{ lookup('vars', playbook_app + '_auto_remove') }}"
-deploy_recreate: "{{ lookup('vars', playbook_app + '_recreate') }}"
-deploy_sysctls: "{{ lookup('vars', playbook_app + '_sysctls') }}"
-deploy_finish: "{{ lookup('vars', playbook_app + '_finish') }}"
+  # Security
+  capabilities: null
+  security_opt: null
+  privileged: null
+  user: null
+  sysctls: null
+
+  # Runtime
+  env: null
+  labels: null
+  devices: null
+  volumes: null
+  healthcheck: null
+
+  # Dependencies and config
+  deps: []
+  deps_run: false
+  configlist: []
+  templatelist: []
+  create_dirs: []
+  finish: ''
+
+# Resolve all app variables at once using custom filter
+_app_vars: "{{ playbook_app | eliminyro.docker.resolve_app_vars(_app_var_specs, hostvars[inventory_hostname]) }}"
+
+# Expose individual variables for backward compatibility with existing tasks
+deploy_image: "{{ _app_vars.image }}"
+deploy_image_tag: "{{ _app_vars.image_tag }}"
+deploy_command: "{{ _app_vars.command }}"
+deploy_entrypoint: "{{ _app_vars.entrypoint }}"
+deploy_restart_policy: "{{ _app_vars.restart_policy }}"
+deploy_pull: "{{ _app_vars.pull }}"
+deploy_recreate: "{{ _app_vars.recreate }}"
+deploy_auto_remove: "{{ _app_vars.auto_remove }}"
+deploy_networks: "{{ _app_vars.networks }}"
+deploy_network_mode: "{{ _app_vars.network_mode }}"
+deploy_ports: "{{ _app_vars.ports }}"
+deploy_hostname: "{{ _app_vars.hostname }}"
+deploy_capabilities: "{{ _app_vars.capabilities }}"
+deploy_security_opt: "{{ _app_vars.security_opt }}"
+deploy_privileged: "{{ _app_vars.privileged }}"
+deploy_user: "{{ _app_vars.user }}"
+deploy_sysctls: "{{ _app_vars.sysctls }}"
+deploy_env: "{{ _app_vars.env }}"
+deploy_labels: "{{ _app_vars.labels }}"
+deploy_devices: "{{ _app_vars.devices }}"
+deploy_volumes: "{{ _app_vars.volumes }}"
+deploy_healthcheck: "{{ _app_vars.healthcheck }}"
+deploy_deps: "{{ _app_vars.deps }}"
+deploy_deps_run: "{{ _app_vars.deps_run }}"
+deploy_configlist: "{{ _app_vars.configlist }}"
+deploy_templatelist: "{{ _app_vars.templatelist }}"
+deploy_finish: "{{ _app_vars.finish }}"

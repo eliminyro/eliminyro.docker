@@ -1,8 +1,9 @@
 ---
-setup_docker_net: False
-setup_docker_tls_certs_regenerate: False
-setup_docker_tls: False
+setup_docker_net: false
+setup_docker_tls: false
+setup_docker_tls_certs_regenerate: false
+setup_docker_config: false
 setup_docker_tls_port: 2376
-setup_docker_tls_verify: True
+setup_docker_tls_verify: true
 setup_docker_networks:
   - name: "default"

@@ -21,7 +21,9 @@
     body_format: json
     body: {}
   register: setup_ca
-  when: setup_docker_tls_certs_regenerate or not (setup_cert_files.results | selectattr('item', 'equalto', 'ca') | first).stat.exists
+  vars:
+    _ca_exists: "{{ setup_cert_files.results | selectattr('item', 'equalto', 'ca') | map(attribute='stat.exists') | first | default(false) }}"
+  when: setup_docker_tls_certs_regenerate or not _ca_exists
 
 - name: Generate key/cert pair for server via cfssl API
   ansible.builtin.uri:
@@ -30,7 +32,9 @@
     body_format: json
     body: "{{ lookup('template', setup_docker_csr_template) }}"
   register: setup_cert
-  when: setup_docker_tls_certs_regenerate | default(False) or not (setup_cert_files.results | selectattr('item', 'equalto', 'server') | first).stat.exists
+  vars:
+    _server_exists: "{{ setup_cert_files.results | selectattr('item', 'equalto', 'server') | map(attribute='stat.exists') | first | default(false) }}"
+  when: setup_docker_tls_certs_regenerate or not _server_exists
 
 - name: Copy certificates to Docker TLS directory
   ansible.builtin.copy:
