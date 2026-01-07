@@ -6,7 +6,7 @@
 - name: "Vols2dirs | Get the path for directory on the host | {{ playbook_app }}"
   ansible.builtin.set_fact:
     deploy_all_paths: "{{ deploy_volumes | map('split', ':') | map('first') | list }}"
-    deploy_create_dirs: "{{ lookup('vars', playbook_app + '_create_dirs', default=[]) }}"
+    deploy_create_dirs: "{{ _app_vars.create_dirs }}"
 
 - name: "Vols2dirs | Split files and dirs | {{ playbook_app }}"
   ansible.builtin.set_fact:
