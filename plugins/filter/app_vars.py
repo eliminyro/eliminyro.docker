@@ -5,6 +5,8 @@
 from __future__ import absolute_import, division, print_function
 __metaclass__ = type
 
+from collections.abc import Mapping
+
 DOCUMENTATION = r'''
 name: resolve_app_vars
 short_description: Resolve application-prefixed variables dynamically
@@ -77,14 +79,17 @@ class FilterModule:
         """
         if not isinstance(app_name, str):
             raise TypeError(f"app_name must be a string, got {type(app_name).__name__}")
-        if not isinstance(var_specs, dict):
-            raise TypeError(f"var_specs must be a dict, got {type(var_specs).__name__}")
-        if not isinstance(hostvars, dict):
-            raise TypeError(f"hostvars must be a dict, got {type(hostvars).__name__}")
+        if not isinstance(var_specs, Mapping):
+            raise TypeError(f"var_specs must be a dict-like object, got {type(var_specs).__name__}")
+        if not isinstance(hostvars, Mapping):
+            raise TypeError(f"hostvars must be a dict-like object, got {type(hostvars).__name__}")
 
         result = {}
         for var_name, default in var_specs.items():
             lookup_key = f"{app_name}_{var_name}"
-            result[var_name] = hostvars.get(lookup_key, default)
+            value = hostvars.get(lookup_key, default)
+            # Skip None values - use .get('key', omit) in templates to handle missing keys
+            if value is not None:
+                result[var_name] = value
 
         return result
